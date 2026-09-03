@@ -9,21 +9,317 @@ window.addEventListener('resize', syncCanvas);
 syncCanvas();
 
 const map = new Map();
-const player = new Player(window.innerWidth / 2 - 10, 20);
+const player = new Player(window.innerWidth / 2 - 18, 20);
 
 const GAME_LEVELS = [
   { id: 1, task: 'Summarize the Word Doc', targetApp: 'word', targetPrompt: 'word-summary' },
   { id: 2, task: 'Build a PowerPoint', targetApp: 'pwp', targetPrompt: 'pwp-build' }, 
   { id: 3, task: 'Make the PowerPoint Pretty', targetApp: 'pwp', targetPrompt: 'pwp-pretty' },
-  // UPATED: Much more professional Copilot task for the final level!
   { id: 4, task: 'Draft an email to executives', targetApp: 'outlook', targetPrompt: 'outlook-write' }
 ];
+
+// --- GAME ENTITIES & OBSTACLES ---
+
+class EmailProjectile {
+  constructor(x, y, facingLeft) {
+      this.x = x; this.y = y;
+      this.w = 64; this.h = 64; // Scaled 2x larger
+      this.img = new Image();
+      this.img.src = 'assets/email.png';
+      
+      const speed = 2.5;
+      this.vx = facingLeft ? -1.2 : 1.2; 
+      this.vy = -speed; 
+      this.active = true;
+  }
+  update(ctx) {
+      this.x += this.vx; 
+      this.y += this.vy;
+      
+      const renderX = this.x - window.scrollX;
+      const renderY = this.y - window.scrollY;
+      const radius = this.w / 2;
+      const centerX = renderX + radius;
+      const centerY = renderY + radius;
+
+      // Draw Glowing Bubble Container
+      ctx.save();
+      ctx.shadowColor = 'rgba(239, 68, 68, 0.5)'; 
+      ctx.shadowBlur = 14;
+
+      const gradient = ctx.createRadialGradient(centerX - radius * 0.3, centerY - radius * 0.3, 0, centerX, centerY, radius);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)'); 
+      gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.7)');
+      gradient.addColorStop(1, 'rgba(239, 68, 68, 0.3)');
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw Inner Asset (2x larger)
+      if (this.img.complete) {
+          const imgSize = 36;
+          ctx.drawImage(this.img, centerX - imgSize / 2, centerY - imgSize / 2, imgSize, imgSize);
+      }
+      
+      // Player Collision Check
+      if (player.x < this.x + this.w && player.x + player.w > this.x &&
+          player.y < this.y + this.h && player.y + player.h > this.y) {
+          if (typeof gameManager !== 'undefined') gameManager.takeDamage();
+          this.active = false; 
+      }
+      
+      const docHeight = document.documentElement.scrollHeight;
+      if (this.y < -50 || this.y > docHeight + 50) {
+          this.active = false;
+      }
+  }
+}
+
+class CoffeePickup {
+  constructor(x, y) {
+      this.x = x; this.y = y;
+      this.w = 64; this.h = 64; // Scaled 2x larger
+      this.vy = -6; 
+      this.vx = (Math.random() - 0.5) * 4;
+      this.active = true;
+      this.img = new Image();
+      this.img.src = 'assets/coffee.png';
+  }
+  update(ctx, platforms) {
+      this.vy += 0.5; 
+      this.x += this.vx;
+      this.y += this.vy;
+      
+      platforms.forEach(p => {
+         if (this.vy > 0 && this.x + this.w > p.x && this.x < p.x + p.w &&
+             this.y + this.h >= p.y && this.y + this.h - this.vy <= p.y + 12) {
+             this.y = p.y - this.h;
+             this.vy = 0;
+             this.vx = 0;
+         }
+      });
+
+      const renderX = this.x - window.scrollX;
+      const renderY = this.y - window.scrollY;
+      const radius = this.w / 2;
+      const centerX = renderX + radius;
+      const centerY = renderY + radius;
+
+      // Draw Glowing Coffee Bubble Container
+      ctx.save();
+      ctx.shadowColor = 'rgba(234, 179, 8, 0.5)'; 
+      ctx.shadowBlur = 14;
+
+      const gradient = ctx.createRadialGradient(centerX - radius * 0.3, centerY - radius * 0.3, 0, centerX, centerY, radius);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)'); 
+      gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.7)');
+      gradient.addColorStop(1, 'rgba(254, 240, 138, 0.4)');
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw Inner Coffee Asset (2x larger)
+      if (this.img.complete) {
+          const imgSize = 40;
+          ctx.drawImage(this.img, centerX - imgSize / 2, centerY - imgSize / 2, imgSize, imgSize);
+      }
+
+      if (player.x < this.x + this.w && player.x + player.w > this.x &&
+          player.y < this.y + this.h && player.y + player.h > this.y) {
+          if (typeof gameManager !== 'undefined') {
+              if (gameManager.lives < 3) gameManager.lives++;
+              gameManager.updateHUD();
+          }
+          this.active = false; 
+      }
+  }
+}
+
+class ACBlock {
+  constructor() {
+      this.active = false;
+      this.spawnedThisLevel = false;
+      this.spawnDelay = 10000;
+      this.x = 0; this.y = 0;
+      this.w = 55; this.h = 40;
+      this.coffees = 1;
+      this.hitOffset = 0;
+      this.img = new Image();
+      this.img.src = 'assets/AC1.png';
+  }
+  resetSpawnTimer() {
+      this.active = false;
+      this.spawnedThisLevel = false;
+      this.spawnDelay = Math.floor(Math.random() * 40000) + 10000;
+  }
+  spawn() {
+      const valid = map.platforms.filter(p => p.y > 300 && p.w > 50);
+      if (valid.length > 0) {
+          const p = valid[Math.floor(Math.random() * valid.length)];
+          this.x = p.x + p.w / 2 - this.w / 2;
+          this.y = p.y - 130; 
+          this.active = true;
+          this.coffees = gameManager.level >= 3 ? 3 : 1;
+      }
+  }
+  hit() {
+      if (this.coffees > 0) {
+          this.coffees--;
+          this.hitOffset = -10; 
+          setTimeout(() => this.hitOffset = 0, 100);
+          // Spawn centered 64px coffee bubble
+          gameManager.coffees.push(new CoffeePickup(this.x + this.w/2 - 32, this.y - 40));
+      }
+  }
+  update(ctx) {
+      if (!this.active) return;
+      
+      const renderX = this.x - window.scrollX;
+      const renderY = this.y + this.hitOffset - window.scrollY;
+
+      if (this.img.complete) {
+          ctx.drawImage(this.img, renderX, renderY, this.w, this.h);
+          if (this.coffees === 0) {
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+              ctx.fillRect(renderX, renderY, this.w, this.h);
+          }
+      }
+
+      if (player.dropTimer === 0 && player.vy >= 0 &&
+          player.x + player.w > this.x + 2 && player.x < this.x + this.w - 2 &&
+          player.y + player.h >= this.y && player.y + player.h - player.vy <= this.y + 12) {
+          player.y = this.y - player.h;
+          player.vy = 0;
+          player.grounded = true;
+      }
+      if (player.vy < 0 && 
+          player.x + player.w > this.x + 4 && player.x < this.x + this.w - 4 &&
+          player.y <= this.y + this.h && player.y - player.vy >= this.y + this.h) {
+          player.y = this.y + this.h;
+          player.vy = 0;
+          this.hit();
+      }
+      if (player.y + player.h > this.y + 4 && player.y < this.y + this.h - 4) {
+          if (player.vx > 0 && player.x + player.w >= this.x && player.x + player.w <= this.x + 10) {
+              player.touchingWall = true; player.wallDir = 1; player.x = this.x - player.w; player.vx = 0;
+          } else if (player.vx < 0 && player.x <= this.x + this.w && player.x >= this.x + this.w - 10) {
+              player.touchingWall = true; player.wallDir = -1; player.x = this.x + this.w; player.vx = 0;
+          }
+      }
+  }
+}
+
+class ZombieBoss {
+  constructor() {
+      this.w = 54; this.h = 86.4; 
+      
+      const docWidth = document.documentElement.scrollWidth || window.innerWidth;
+      this.x = Math.random() * (docWidth - this.w - 100) + 50;
+      this.y = 0;
+      
+      this.patrolLeft = Math.max(20, this.x - 150);
+      this.patrolRight = Math.min(docWidth - this.w - 20, this.x + 150);
+      this.patrolDir = 1; 
+      
+      this.frames = {
+          walk1: new Image(),
+          walk2: new Image()
+      };
+      this.frames.walk1.src = 'assets/zombie_action1.png'; 
+      this.frames.walk2.src = 'assets/zombie_action2.png'; 
+      
+      this.currentFrame = this.frames.walk1;
+      this.speed = 1.0;
+      this.lastEmailTime = 0;
+      this.animTimer = 0;
+  }
+
+  resetRandomPos() {
+      const docWidth = document.documentElement.scrollWidth || window.innerWidth;
+      this.x = Math.random() * (docWidth - this.w - 100) + 50;
+      this.patrolLeft = Math.max(20, this.x - 150);
+      this.patrolRight = Math.min(docWidth - this.w - 20, this.x + 150);
+  }
+
+  update(ctx) {
+      this.y = document.documentElement.scrollHeight - this.h;
+
+      let isMoving = true; 
+      
+      if (typeof gameManager !== 'undefined' && gameManager.level === 1) {
+          this.x += this.speed * this.patrolDir;
+          if (this.x >= this.patrolRight) {
+              this.x = this.patrolRight;
+              this.patrolDir = -1;
+          } else if (this.x <= this.patrolLeft) {
+              this.x = this.patrolLeft;
+              this.patrolDir = 1;
+          }
+      } else if (typeof gameManager !== 'undefined' && gameManager.level > 1) {
+          if (this.x + this.w/2 < player.x + player.w/2 - 10) { 
+              this.x += this.speed; 
+              this.patrolDir = 1; 
+          } else if (this.x + this.w/2 > player.x + player.w/2 + 10) { 
+              this.x -= this.speed; 
+              this.patrolDir = -1; 
+          }
+      }
+
+      this.animTimer++;
+      if (this.animTimer % 40 < 20) this.currentFrame = this.frames.walk1;
+      else this.currentFrame = this.frames.walk2;
+
+      const renderX = this.x - window.scrollX;
+      const renderY = this.y - window.scrollY;
+      
+      if (this.currentFrame.complete) {
+          ctx.save();
+          if (this.patrolDir === -1) {
+              ctx.translate(renderX + this.w, renderY);
+              ctx.scale(-1, 1);
+              ctx.drawImage(this.currentFrame, 0, 0, this.w, this.h);
+          } else {
+              ctx.drawImage(this.currentFrame, renderX, renderY, this.w, this.h);
+          }
+          ctx.restore();
+      }
+
+      if (player.x < this.x + this.w - 10 && player.x + player.w > this.x + 10 &&
+          player.y < this.y + this.h && player.y + player.h > this.y) {
+          if (typeof gameManager !== 'undefined') gameManager.takeDamage();
+      }
+  }
+}
+
+// --- GAME MANAGER & LEVEL LOGIC ---
 
 class GameManager {
   constructor() {
     this.level = 1;
     this.lives = 3;
     this.activeCategory = 'all'; 
+    this.invulnerable = false;
+    this.levelTime = 0;
+    
+    this.boss = new ZombieBoss();
+    this.acBlock = new ACBlock();
+    this.acBlock.resetSpawnTimer();
+    this.emails = [];
+    this.coffees = [];
     
     this.apps = { word: new Image(), pwp: new Image(), outlook: new Image() };
     this.apps.word.src = 'assets/word1.png';
@@ -50,6 +346,38 @@ class GameManager {
     return GAME_LEVELS[this.level - 1];
   }
 
+  takeDamage() {
+      if (this.invulnerable) return;
+      this.invulnerable = true;
+      
+      setTimeout(() => this.invulnerable = false, 1500); 
+      
+      this.lives--;
+      player.vy = -6; 
+      player.vx = player.facing === 'right' ? -10 : 10; 
+      player.carriedPrompt = null; 
+      
+      if (this.lives <= 0) {
+          alert("GAME OVER! You missed the deadline."); 
+          this.resetToTask1(); 
+      } else {
+          this.updateHUD(); 
+      }
+  }
+
+  resetToTask1() {
+      this.lives = 3;
+      this.level = 1;
+      
+      player.x = window.innerWidth / 2 - 18;
+      player.y = 20;
+      player.vx = 0;
+      player.vy = 0;
+      player.carriedPrompt = null;
+
+      this.triggerLevelTransition();
+  }
+
   selectCategory(category, targetElement) {
     if (this.level < 3) return; 
 
@@ -63,7 +391,6 @@ class GameManager {
     if (targetElement) {
       targetElement.classList.remove('bg-white');
       targetElement.classList.add('bg-carrier-blue', 'text-white');
-      
       targetElement.style.transform = 'translateY(-10px)';
       setTimeout(() => targetElement.style.transform = 'translateY(0)', 150);
     }
@@ -104,6 +431,13 @@ class GameManager {
     if (!container) return;
     
     this.activeCategory = 'all';
+    this.levelTime = 0;
+    this.boss.lastEmailTime = 0;
+    this.boss.resetRandomPos(); 
+    this.emails = [];
+    this.coffees = [];
+    this.acBlock.resetSpawnTimer(); 
+
     document.querySelectorAll('.filter-btn').forEach(b => {
       b.classList.remove('bg-carrier-blue', 'text-white');
       b.classList.add('bg-white');
@@ -149,17 +483,7 @@ class GameManager {
         alert("YOU WIN! Presentation delivered!"); 
       }
     } else {
-      this.lives--;
-      player.vy = -6; 
-      player.vx = player.facing === 'right' ? -10 : 10;
-      
-      if (this.lives <= 0) {
-        alert("GAME OVER!"); 
-        this.lives = 3;
-        this.level = 1;
-        this.loadLevelCards(); 
-      }
-      this.updateHUD(); 
+      this.takeDamage(); 
     }
   }
 
@@ -236,6 +560,29 @@ window.addEventListener('keyup', e => {
 
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  gameManager.levelTime += 16.6; 
+
+  if (!gameManager.acBlock.active && gameManager.levelTime > gameManager.acBlock.spawnDelay && !gameManager.acBlock.spawnedThisLevel) {
+      gameManager.acBlock.spawn();
+      gameManager.acBlock.spawnedThisLevel = true; 
+  }
+
+  let emailInterval = 20000;
+  if (gameManager.level === 2) emailInterval = 15000;
+  if (gameManager.level === 3) emailInterval = 10000;
+  if (gameManager.level === 4) emailInterval = 5000;
+  
+  if (gameManager.levelTime - gameManager.boss.lastEmailTime >= emailInterval) {
+      gameManager.boss.lastEmailTime = gameManager.levelTime;
+      const facingLeft = gameManager.boss.patrolDir === -1;
+      // Spawn centered 64px email bubble above boss
+      gameManager.emails.push(new EmailProjectile(
+          gameManager.boss.x + gameManager.boss.w / 2 - 32, 
+          gameManager.boss.y - 20, 
+          facingLeft
+      ));
+  }
 
   player.update(keys, map.platforms);
   gameManager.updateHUD(); 
@@ -258,7 +605,22 @@ function gameLoop() {
   window.scrollTo(0, Math.max(0, targetScrollY));
 
   gameManager.drawPortals(ctx);
+  
+  gameManager.acBlock.update(ctx);
+  
+  gameManager.coffees.forEach(c => c.update(ctx, map.platforms));
+  gameManager.coffees = gameManager.coffees.filter(c => c.active); 
+  
+  gameManager.emails.forEach(e => e.update(ctx));
+  gameManager.emails = gameManager.emails.filter(e => e.active); 
+  
+  gameManager.boss.update(ctx);
+
+  if (gameManager.invulnerable) {
+      ctx.globalAlpha = (Date.now() % 300 < 150) ? 0.5 : 1.0;
+  }
   player.draw(ctx);
+  ctx.globalAlpha = 1.0;
 
   requestAnimationFrame(gameLoop);
 }
