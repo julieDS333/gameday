@@ -36,6 +36,9 @@ class Map {
       '.agent-card h3',
       '.agent-card .copy-btn',
 
+      // Copilot Studio specific buttons/badges
+      '.bg-indigo-100.text-indigo-700', // The "Copilot Studio" badge
+
       // Other Tab Cards & Elements
       '.steal-prompt-card',
       '.demo-card',
