@@ -2,13 +2,13 @@ class Player {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.w = 24; 
-    this.h = 38.4; 
+    this.w = 36; 
+    this.h = 57.6; 
     this.vx = 0;
     this.vy = 0;
     this.speed = 5;
     this.gravity = 0.5;
-    this.jumpPower = -13; 
+    this.jumpPower = -14.5; 
     this.grounded = false;
     this.facing = 'right';
     this.state = 'IDLE';
@@ -88,6 +88,7 @@ class Player {
     this.wallDir = 0;
 
     platforms.forEach(p => {
+      // Wall Collisions
       if (this.y + this.h > p.y + 4 && this.y < p.y + p.h - 4) {
         if (this.vx > 0 && this.x + this.w >= p.x && this.x + this.w <= p.x + 10) {
           this.touchingWall = true; this.wallDir = 1; this.x = p.x - this.w; this.vx = 0;
@@ -96,6 +97,7 @@ class Player {
         }
       }
 
+      // Landing Collisions (Top)
       if (this.dropTimer === 0 && this.vy >= 0 &&
           this.x + this.w > p.x + 2 &&
           this.x < p.x + p.w - 2 &&
@@ -105,6 +107,24 @@ class Player {
         this.vy = 0;
         this.grounded = true;
         this.currentPlatformElement = p.element; 
+      }
+
+      // Ceiling Collisions (Headbutting Blocks)
+      if (this.vy < 0 && 
+          this.x + this.w > p.x + 4 && 
+          this.x < p.x + p.w - 4 &&
+          this.y <= p.y + p.h && 
+          this.y - this.vy >= p.y + p.h) { 
+        
+        this.y = p.y + p.h; 
+        this.vy = 0; 
+        
+        if (p.element && p.element.classList.contains('filter-btn')) {
+          const category = p.element.getAttribute('data-filter');
+          if (typeof gameManager !== 'undefined') {
+            gameManager.selectCategory(category, p.element);
+          }
+        }
       }
     });
 
@@ -138,11 +158,13 @@ class Player {
   }
 
   interact() {
-    if (!this.carriedPrompt && this.grounded && this.currentPlatformElement) {
+    // FIX: Removed the '!this.carriedPrompt' check! 
+    // Now, if you are grounded on a card, Ctrl+C will ALWAYS overwrite your current prompt.
+    if (this.grounded && this.currentPlatformElement) {
       const card = this.currentPlatformElement.closest('.prompt-card');
-      if (card && card.id) { // FIX: Use card.id to find the HTML id!
+      if (card && card.id) { 
         this.carriedPrompt = card.id;
-        this.vy = -5;
+        this.vy = -5; // Small jump visual feedback
         this.grounded = false;
         this.scaleX = 0.8;
         this.scaleY = 1.2;

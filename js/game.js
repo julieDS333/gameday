@@ -5,32 +5,27 @@ function syncCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 }
-
 window.addEventListener('resize', syncCanvas);
 syncCanvas();
 
 const map = new Map();
 const player = new Player(window.innerWidth / 2 - 10, 20);
 
-// --- LEVEL DATA & APP PORTALS ---
 const GAME_LEVELS = [
   { id: 1, task: 'Summarize the Word Doc', targetApp: 'word', targetPrompt: 'word-summary' },
   { id: 2, task: 'Build a PowerPoint', targetApp: 'pwp', targetPrompt: 'pwp-build' }, 
   { id: 3, task: 'Make the PowerPoint Pretty', targetApp: 'pwp', targetPrompt: 'pwp-pretty' },
-  { id: 4, task: 'Write an Email to send the deck', targetApp: 'outlook', targetPrompt: 'outlook-write' }
+  // UPATED: Much more professional Copilot task for the final level!
+  { id: 4, task: 'Draft an email to executives', targetApp: 'outlook', targetPrompt: 'outlook-write' }
 ];
 
 class GameManager {
   constructor() {
     this.level = 1;
     this.lives = 3;
+    this.activeCategory = 'all'; 
     
-    this.apps = {
-      word: new Image(),
-      pwp: new Image(),
-      outlook: new Image()
-    };
-    
+    this.apps = { word: new Image(), pwp: new Image(), outlook: new Image() };
     this.apps.word.src = 'assets/word1.png';
     this.apps.pwp.src = 'assets/pwp1.png';
     this.apps.outlook.src = 'assets/outlook1.png';
@@ -40,16 +35,63 @@ class GameManager {
       { id: 'pwp', img: this.apps.pwp, x: 800, y: 550 },
       { id: 'outlook', img: this.apps.outlook, x: 500, y: 800 }
     ];
+
+    setInterval(() => {
+      if (this.level >= 3) {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.classList.add('animate-jump');
+          setTimeout(() => btn.classList.remove('animate-jump'), 1000);
+        });
+      }
+    }, 5000);
   }
 
   getCurrentObjective() {
     return GAME_LEVELS[this.level - 1];
   }
 
+  selectCategory(category, targetElement) {
+    if (this.level < 3) return; 
+
+    this.activeCategory = category;
+
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.remove('bg-carrier-blue', 'text-white');
+      b.classList.add('bg-white');
+    });
+
+    if (targetElement) {
+      targetElement.classList.remove('bg-white');
+      targetElement.classList.add('bg-carrier-blue', 'text-white');
+      
+      targetElement.style.transform = 'translateY(-10px)';
+      setTimeout(() => targetElement.style.transform = 'translateY(0)', 150);
+    }
+
+    this.loadLevelCards();
+    setTimeout(() => map.refreshPlatforms(), 100); 
+  }
+
   loadLevelCards() {
+    const container = document.getElementById('promptCardContainer');
+    if (!container) return;
+
+    if (this.level === 3 && this.activeCategory === 'all') {
+      container.style.filter = 'blur(6px)';
+      container.classList.add('pointer-events-none'); 
+    } else {
+      container.style.filter = 'blur(0px)';
+      container.classList.remove('pointer-events-none');
+    }
+
     document.querySelectorAll('.prompt-card').forEach(card => {
       const cardLevel = parseInt(card.getAttribute('data-level'));
-      if (cardLevel && cardLevel <= this.level) {
+      const cardCat = card.getAttribute('data-category');
+
+      const isLevelMatch = cardLevel && cardLevel <= this.level;
+      const isCatMatch = this.activeCategory === 'all' || cardCat === this.activeCategory;
+
+      if (isLevelMatch && isCatMatch) {
         card.classList.remove('hidden');
       } else {
         card.classList.add('hidden');
@@ -61,13 +103,23 @@ class GameManager {
     const container = document.getElementById('promptCardContainer');
     if (!container) return;
     
+    this.activeCategory = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.remove('bg-carrier-blue', 'text-white');
+      b.classList.add('bg-white');
+    });
+    const allBtn = document.querySelector('[data-filter="all"]');
+    if (allBtn) {
+      allBtn.classList.remove('bg-white');
+      allBtn.classList.add('bg-carrier-blue', 'text-white');
+    }
+    
     const flash = document.createElement('div');
     flash.className = 'fixed inset-0 bg-green-400 opacity-0 z-[999] pointer-events-none transition-opacity duration-300';
     document.body.appendChild(flash);
     
     setTimeout(() => {
       flash.style.opacity = '0.3';
-      container.style.filter = 'blur(8px)';
       container.style.opacity = '0.5';
     }, 50);
 
@@ -75,7 +127,6 @@ class GameManager {
       this.loadLevelCards();
       this.updateHUD();
       
-      container.style.filter = 'blur(0px)';
       container.style.opacity = '1';
       flash.style.opacity = '0';
       
@@ -114,7 +165,6 @@ class GameManager {
 
   drawPortals(ctx) {
     const time = Date.now();
-    
     this.portals.forEach((p, index) => {
       const floatY = Math.sin(time / 500 + index) * 12; 
       const radius = 38;
@@ -124,12 +174,9 @@ class GameManager {
       const centerY = renderY + radius;
 
       ctx.save();
-      
       const pulse = Math.sin(time / 300 + index) * 5;
       ctx.shadowColor = 'rgba(200, 220, 240, 0.6)';
       ctx.shadowBlur = 15 + pulse;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
 
       const gradient = ctx.createRadialGradient(centerX - radius * 0.3, centerY - radius * 0.3, 0, centerX, centerY, radius);
       gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)'); 
@@ -172,20 +219,17 @@ class GameManager {
 
 const gameManager = new GameManager();
 
-// --- CONTROLS & GAME LOOP ---
 const keys = {};
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
     player.jump();
   }
-  // NEW: Press Ctrl + C (or Cmd + C) to pick up a prompt card
   if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC') {
-    e.preventDefault(); // Prevents the browser from actually copying text to your clipboard
+    e.preventDefault(); 
     player.interact();
   }
 });
-
 window.addEventListener('keyup', e => {
   keys[e.code] = false;
 });
@@ -194,7 +238,6 @@ function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   player.update(keys, map.platforms);
-  
   gameManager.updateHUD(); 
 
   if (player.carriedPrompt) {
@@ -220,7 +263,6 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-// Initial Load setup
 window.addEventListener('load', () => {
   syncCanvas();
   gameManager.loadLevelCards();

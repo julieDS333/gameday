@@ -1,59 +1,22 @@
 class Map {
   constructor() {
     this.platforms = [];
-    this.refreshPlatforms();
-
-    // Re-calculate platform positions on window scroll or resize
-    window.addEventListener('resize', () => this.refreshPlatforms());
-    window.addEventListener('scroll', () => this.refreshPlatforms());
   }
 
   refreshPlatforms() {
     this.platforms = [];
+    
+    // STRICT MODE: Only select elements explicitly marked with the 'platform' class
+    const elements = document.querySelectorAll('.platform');
+    
+    elements.forEach(el => {
+      // Ignore elements that are hidden (like cards for higher levels)
+      if (el.closest('.hidden')) return;
 
-    // Sub-elements registered as platforms (card containers are excluded so gaps remain open)
-    const selectors = [
-      '.header-nav',
-      '.dept-selector-box',
-      '.user-avatar',
-      '.nav-tab',
-
-      // Hero Banner Stepping Stones
-      '.hero-badge',
-      '.hero-title',
-      '.hero-desc',
-
-      // Task Filter Bar
-      '.filter-btn',
-
-      // Sub-platforms inside Action Prompt Cards
-      '.prompt-card span',
-      '.prompt-card h3',
-      '.prompt-card .copy-btn',
-
-      // Sub-platforms inside Agent Builder Cards
-      '.agent-card span',
-      '.agent-card h3',
-      '.agent-card .copy-btn',
-
-      // Copilot Studio specific buttons/badges
-      '.bg-indigo-100.text-indigo-700', // The "Copilot Studio" badge
-
-      // Other Tab Cards & Elements
-      '.steal-prompt-card',
-      '.demo-card',
-      '.cheatsheet-card',
-      '.training-card',
-      '.resource-card',
-      '.glow-bubble'
-    ];
-
-    selectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach(el => {
-        // Skip hidden elements (e.g. elements inside inactive tabs)
-        if (el.offsetParent === null) return;
-
-        const rect = el.getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
+      
+      // Only create a physics block if the element is actually visible and has size
+      if (rect.width > 0 && rect.height > 0) {
         this.platforms.push({
           x: rect.left + window.scrollX,
           y: rect.top + window.scrollY,
@@ -61,7 +24,7 @@ class Map {
           h: rect.height,
           element: el
         });
-      });
+      }
     });
   }
 }
