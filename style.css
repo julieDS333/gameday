@@ -1,0 +1,32 @@
+/* Transparent overlay canvas covering the full scrollable page */
+#gameCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* Visual highlights for interactive game elements */
+.prompt-card, .agent-card, .nav-tab {
+  transition: transform 0.1s ease;
+}
+
+/* HUD Overlay for Lives & Timer */
+#gameHUD {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.9);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 2px solid #0067b1;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}

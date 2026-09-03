@@ -1,17 +1,413 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="bg-slate-50">
 <head>
-  <meta charset="UTF-8">
-  <title>Carrier Copilot Quest - Map Test</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carrier M365 Copilot Hub - 2D Map</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/game.css" />
+  <style>
+    :root { --carrier-blue: #0067b1; }
+    .bg-carrier-blue { background-color: #0067b1; }
+    .bg-carrier-blue-dark { background-color: #00518c; }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(3deg); }
+    }
+    .animate-float { animation: float 4s ease-in-out infinite; }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(0, 103, 177, 0.4); }
+      50% { box-shadow: 0 0 25px rgba(0, 103, 177, 0.8); }
+    }
+    .glow-bubble { animation: pulse-glow 3s infinite, float 4s ease-in-out infinite; }
+  </style>
 </head>
-<body>
-  <div id="gameContainer">
-    <canvas id="gameCanvas" width="1000" height="750"></canvas>
+<body class="min-h-screen text-slate-800 antialiased relative">
+
+  <!-- Transparent Game Overlay Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- 1. Header Navigation Bar (Platform) -->
+  <header class="header-nav sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5">
+      
+      <div class="flex items-center gap-4">
+        <!-- Brand Logo -->
+        <div class="flex items-center gap-2">
+          <div class="grid h-8 w-8 place-items-center rounded-md bg-carrier-blue text-white font-bold">C</div>
+          <span class="text-base font-bold text-slate-900 hidden sm:inline">Carrier Copilot Hub</span>
+        </div>
+
+        <div class="h-5 w-px bg-slate-200 hidden sm:block"></div>
+
+        <!-- Department Selector Box (Platform) -->
+        <div class="dept-selector-box flex items-center gap-1.5 bg-slate-100 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700">
+          <span class="text-slate-400">Dept:</span>
+          <select id="deptSelector" class="bg-transparent font-semibold text-carrier-blue outline-none cursor-pointer">
+            <option value="All">All Carrier</option>
+            <option value="Sales">Sales & Marketing</option>
+            <option value="Engineering">Engineering & HVAC</option>
+            <option value="HR">HR & Operations</option>
+            <option value="Supply Chain">Supply Chain</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (5 Tabs - Platforms) -->
+      <div class="flex items-center gap-1 overflow-x-auto py-1">
+        <button data-tab="prompts" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium bg-carrier-blue text-white transition">Prompts</button>
+        <button data-tab="steal-my-prompt" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Steal My Prompt</button>
+        <button data-tab="cheatsheets" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Cheat Sheets</button>
+        <button data-tab="training" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Training</button>
+        <button data-tab="resources" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Resources</button>
+      </div>
+
+      <!-- User Profile Badge (Platform) -->
+      <div class="user-avatar hidden lg:flex items-center gap-2">
+        <button class="grid h-8 w-8 place-items-center rounded-full bg-carrier-blue text-xs font-semibold text-white">JD</button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-6">
+
+    <!-- PROMPTS TAB CONTENT -->
+    <section id="tab-prompts" class="tab-content block space-y-10">
+      
+      <!-- Banner Background Box (Non-platform background container) -->
+      <div class="overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B6D] via-[#0067b1] to-[#0082E6] p-6 md:p-8 text-white shadow-lg relative">
+        <div class="max-w-2xl relative z-10 space-y-2">
+          
+          <!-- Banner Platform 1: Badge -->
+          <div>
+            <span class="hero-badge inline-block rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-xs font-semibold uppercase tracking-wider">
+              Enterprise AI Enablement
+            </span>
+          </div>
+
+          <!-- Banner Platform 2: Main Heading -->
+          <div>
+            <h1 class="hero-title inline-block text-2xl md:text-3xl font-extrabold">
+              Work Smarter Across Carrier
+            </h1>
+          </div>
+
+          <!-- Banner Platform 3: Description Text -->
+          <div>
+            <p class="hero-desc inline-block text-sm text-blue-100">
+              Select a pre-approved prompt below, filter by task, or deploy custom Copilot agents. Built to save you 3+ hours every week.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Category Filter Buttons (5 Buttons - Platforms) -->
+      <div class="space-y-6">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Action Prompt Library</h2>
+            <p class="text-xs text-slate-500">Filtered for: <span id="activeDeptLabel" class="font-semibold text-carrier-blue">All Carrier</span></p>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5">
+            <button data-filter="all" class="filter-btn rounded-full bg-carrier-blue px-3.5 py-1.5 text-xs font-semibold text-white">All Tasks</button>
+            <button data-filter="fun" class="filter-btn rounded-full bg-amber-100 px-3.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-200">Discover</button>
+            <button data-filter="summarize" class="filter-btn rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">Summarize</button>
+            <button data-filter="write" class="filter-btn rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">Write</button>
+            <button data-filter="analyze" class="filter-btn rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">Analyze</button>
+          </div>
+        </div>
+
+        <!-- 3. Action Prompt Library (All 8 Prompt Cards - Platforms) -->
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+          <!-- Card 1 -->
+          <article data-category="fun" data-dept="All,Sales,HR" class="prompt-card flex flex-col rounded-xl border border-amber-200 bg-gradient-to-b from-amber-50/50 to-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Make Pretty</span>
+              <span class="text-[11px] text-slate-400 font-medium">PowerPoint</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">Turn Draft into Clean Slides</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Take my rough bullet points below and reorganize them into a 3-slide PowerPoint outline. Add suggested visual icon ideas and concise headline titles for each slide.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">
+              <span>Copy "Make Pretty" Prompt</span>
+            </button>
+          </article>
+
+          <!-- Card 2 -->
+          <article data-category="fun" data-dept="All,Sales,HR,Engineering" class="prompt-card flex flex-col rounded-xl border border-purple-200 bg-gradient-to-b from-purple-50/50 to-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-800">Fix My Tone</span>
+              <span class="text-[11px] text-slate-400 font-medium">Outlook</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">Executive Email Polish</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Rewrite my draft email to sound highly professional, direct, and constructive for executive leadership, while removing any defensive language.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-800">
+              <span>Copy "Fix Tone" Prompt</span>
+            </button>
+          </article>
+
+          <!-- Card 3 -->
+          <article data-category="fun" data-dept="Engineering,Sales" class="prompt-card flex flex-col rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/50 to-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Explain Like I'm 5</span>
+              <span class="text-[11px] text-slate-400 font-medium">Word / Chat</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">Simplify Tech Specs</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Explain this complex HVAC technical specification document as if I were a non-technical customer, using simple analogies and highlighting top benefits.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+              <span>Copy Prompt</span>
+            </button>
+          </article>
+
+          <!-- Card 4 -->
+          <article data-category="summarize" data-dept="All,Sales,HR,Engineering,Supply Chain" class="prompt-card flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span>
+              <span class="text-[11px] text-slate-400 font-medium">Teams</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">Catch Up on Missed Call</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Summarize the transcript of this meeting into key decisions made, owner action items with deadlines, and open questions.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark">
+              <span>Copy Prompt</span>
+            </button>
+          </article>
+
+          <!-- Card 5 -->
+          <article data-category="write" data-dept="Sales" class="prompt-card flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span>
+              <span class="text-[11px] text-slate-400 font-medium">Word</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">Draft Customer Follow-Up</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a commercial HVAC proposal follow-up email highlighting energy efficiency ROI and key Carrier warranties.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark">
+              <span>Copy Prompt</span>
+            </button>
+          </article>
+
+          <!-- Card 6 -->
+          <article data-category="analyze" data-dept="Supply Chain,Engineering,Sales" class="prompt-card flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Analyze</span>
+              <span class="text-[11px] text-slate-400 font-medium">Excel</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">Spot Data Trends & Anomalies</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Analyze this dataset and show the top 3 quarterly trends, supply chain bottlenecks, and outlier values in bullet points.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark">
+              <span>Copy Prompt</span>
+            </button>
+          </article>
+
+          <!-- Card 7 -->
+          <article data-category="summarize" data-dept="Supply Chain,HR,Sales" class="prompt-card flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span>
+              <span class="text-[11px] text-slate-400 font-medium">Word</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">Vendor Contract Risk Review</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Extract key SLAs, termination clauses, auto-renewal timelines, and liability caps from this vendor contract into a 1-page executive summary table.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark">
+              <span>Copy Prompt</span>
+            </button>
+          </article>
+
+          <!-- Card 8 -->
+          <article data-category="write" data-dept="Sales,Engineering" class="prompt-card flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span>
+              <span class="text-[11px] text-slate-400 font-medium">Word / Chat</span>
+            </div>
+            <h3 class="mt-3 font-bold text-slate-900">HVAC Product Launch Brief</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a 1-page product launch brief for our new sustainable chiller line, highlighting seasonal energy efficiency metrics and target buyer personas.</p>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark">
+              <span>Copy Prompt</span>
+            </button>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- 4. Copilot Studio Section (All 4 Agent Builder Cards - Platforms) -->
+      <div class="space-y-6 pt-4 border-t border-slate-200">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">Copilot Studio</span>
+            <h2 class="text-lg font-bold text-slate-900">Copilot Custom Agent Builders</h2>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">Deploy dedicated AI agents pre-configured with Carrier business logic, workflows, and enterprise connectors.</p>
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- Agent Card 1 -->
+          <article data-dept="Engineering" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
+                <span class="text-[11px] text-indigo-600 font-semibold">Engineering</span>
+              </div>
+              <h3 class="mt-3 font-bold text-slate-900">HVAC Tech Assist Agent</h3>
+              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">System instructions to query Carrier technical manuals, decode equipment fault codes, and walk field technicians through troubleshooting steps.</p>
+            </div>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+              <span>Build my HVAC Tech Assist agent</span>
+            </button>
+          </article>
+
+          <!-- Agent Card 2 -->
+          <article data-dept="HR" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
+                <span class="text-[11px] text-indigo-600 font-semibold">HR & Ops</span>
+              </div>
+              <h3 class="mt-3 font-bold text-slate-900">HR Policy Navigator Agent</h3>
+              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">System prompt for answering internal employee inquiries regarding Carrier benefits, PTO, compliance safety protocols, and onboarding milestones.</p>
+            </div>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+              <span>Build my HR Policy Navigator agent</span>
+            </button>
+          </article>
+
+          <!-- Agent Card 3 -->
+          <article data-dept="Sales" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
+                <span class="text-[11px] text-indigo-600 font-semibold">Sales</span>
+              </div>
+              <h3 class="mt-3 font-bold text-slate-900">RFP & Bid Intelligence Agent</h3>
+              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">Custom agent configuration to scan inbound customer tender PDFs, evaluate Carrier product compatibility, and draft executive proposal responses.</p>
+            </div>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+              <span>Build my Bid Intelligence agent</span>
+            </button>
+          </article>
+
+          <!-- Agent Card 4 -->
+          <article data-dept="Supply Chain" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
+                <span class="text-[11px] text-indigo-600 font-semibold">Supply Chain</span>
+              </div>
+              <h3 class="mt-3 font-bold text-slate-900">Supply Chain Tracker Agent</h3>
+              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">Agent instructions to connect directly to ERP inventory feeds, detect shipment delays over 10 days, and automate vendor follow-up drafts.</p>
+            </div>
+            <button class="copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+              <span>Build my Supply Chain Tracker agent</span>
+            </button>
+          </article>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 5. STEAL MY PROMPT TAB CONTENT -->
+    <section id="tab-steal-my-prompt" class="tab-content hidden space-y-10">
+      <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Steal My Prompt 🔥</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Real battle-tested prompts from Carrier colleagues.</p>
+        </div>
+      </div>
+
+      <!-- 4 Peer Prompt Cards (Platforms) -->
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <article class="steal-prompt-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-900">Alex Rivera</h4>
+          <p class="text-[10px] text-slate-500">Commercial Account Manager</p>
+          <p class="mt-2 text-xs text-slate-700">RFP Risk & Opportunity Summarizer</p>
+        </article>
+        <article class="steal-prompt-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-900">Marcus Vance</h4>
+          <p class="text-[10px] text-slate-500">Lead Systems Engineer</p>
+          <p class="mt-2 text-xs text-slate-700">Fault Code Diagnostic Helper</p>
+        </article>
+        <article class="steal-prompt-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-900">Elena Rostova</h4>
+          <p class="text-[10px] text-slate-500">Global Inventory Manager</p>
+          <p class="mt-2 text-xs text-slate-700">Supplier Delay Anomaly Finder</p>
+        </article>
+        <article class="steal-prompt-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 class="text-xs font-bold text-slate-900">Karen Miller</h4>
+          <p class="text-[10px] text-slate-500">HR Operations Lead</p>
+          <p class="mt-2 text-xs text-slate-700">Role Onboarding Roadmap</p>
+        </article>
+      </div>
+
+      <!-- 3 Video Transformation Showcase Cards (Platforms) -->
+      <div class="grid gap-6 md:grid-cols-3 pt-4">
+        <div class="demo-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h4 class="font-bold text-sm text-slate-900">Sarah Jenkins · Sales Lead</h4>
+          <p class="text-xs text-slate-500 mt-1">Client Proposal Draft Transformation</p>
+        </div>
+        <div class="demo-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h4 class="font-bold text-sm text-slate-900">Marcus Vance · Lead Engineer</h4>
+          <p class="text-xs text-slate-500 mt-1">Reviewing 50-Page HVAC Technical Manuals</p>
+        </div>
+        <div class="demo-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h4 class="font-bold text-sm text-slate-900">Elena Rostova · Inventory Mgr</h4>
+          <p class="text-xs text-slate-500 mt-1">Weekly Supply Logistics Analytics</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CHEAT SHEETS TAB CONTENT -->
+    <section id="tab-cheatsheets" class="tab-content hidden space-y-6">
+      <h2 class="text-xl font-bold text-slate-900">1-Page Job Guides</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="cheatsheet-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 class="font-bold text-sm">Copilot in Word (W)</h3>
+        </div>
+        <div class="cheatsheet-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 class="font-bold text-sm">Copilot in Excel (X)</h3>
+        </div>
+        <div class="cheatsheet-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 class="font-bold text-sm">Copilot in Teams (T)</h3>
+        </div>
+        <div class="cheatsheet-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 class="font-bold text-sm">Copilot in PowerPoint (P)</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. TRAINING TAB CONTENT -->
+    <section id="tab-training" class="tab-content hidden space-y-6">
+      <h2 class="text-xl font-bold text-slate-900">Carrier Learning Paths</h2>
+      <div class="space-y-4">
+        <div class="training-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 class="font-bold text-base text-slate-900">Copilot Foundations: Effective Prompting</h3>
+        </div>
+        <div class="training-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 class="font-bold text-base text-slate-900">Copilot for Managers & Team Leads</h3>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. RESOURCES TAB CONTENT -->
+    <section id="tab-resources" class="tab-content hidden space-y-6">
+      <h2 class="text-xl font-bold text-slate-900">Governance & Security Guidelines</h2>
+      <div class="resource-card rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h4 class="font-bold text-sm">Data Protection Guaranteed</h4>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 5. Floating Interactive Widget (Platform) -->
+  <div class="fixed bottom-6 right-6 z-50">
+    <button id="bubbleBtn" class="glow-bubble group relative flex items-center gap-3 rounded-full bg-gradient-to-r from-carrier-blue to-cyan-500 p-3.5 text-white shadow-2xl">
+      <span class="text-xl">⚡️</span>
+      <span class="text-xs font-bold pr-1">Prompt of the Week!</span>
+    </button>
   </div>
 
-  <script src="js/player.js"></script>
   <script src="js/map.js"></script>
+  <script src="js/player.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
