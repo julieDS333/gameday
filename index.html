@@ -1,426 +1,156 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-slate-50">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carrier M365 Copilot Hub - 2D Map</title>
+  <title>Intro - Carrier Copilot Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="css/game.css" />
   <style>
-    :root { --carrier-blue: #0067b1; }
-    .bg-carrier-blue { background-color: #0067b1; }
-    .bg-carrier-blue-dark { background-color: #00518c; }
+    body { background-color: #1e1e1e; margin: 0; overflow: hidden; }
     
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-12px) rotate(3deg); }
+    #word-page {
+      position: relative;
+      z-index: 10;
+      background: white;
+      width: 800px;
+      min-height: 100vh;
+      margin: 0 auto;
+      box-shadow: 0 0 30px rgba(0,0,0,0.6); 
+      padding-top: 150px; 
+      padding-left: 80px;
+      padding-right: 80px;
+      padding-bottom: 100px;
     }
-    .animate-float { animation: float 4s ease-in-out infinite; }
+
+    .word-text {
+      font-family: 'Aptos', 'Calibri', sans-serif;
+      color: #242424;
+      font-size: 13px; 
+      line-height: 1.4;
+      margin-bottom: 20px;
+      text-align: justify;
+    }
+
+    .fallable { display: block; }
+
+    #email-toast {
+      position: fixed;
+      bottom: -100px;
+      right: 24px;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      width: 220px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      z-index: 1000;
+      border-left: 4px solid #0067b1;
+      transition: bottom 0.4s ease-out;
+    }
     
-    @keyframes jump-attention {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+    @keyframes jiggle {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      5%, 15% { transform: translateY(-5px) rotate(-4deg); }
+      10%, 20% { transform: translateY(0px) rotate(4deg); }
+      25% { transform: translateY(0) rotate(0); }
     }
-    .animate-jump { animation: jump-attention 0.4s ease-in-out 2; }
+    
+    #email-toast.show { 
+      bottom: 70px; 
+      animation: jiggle 2s infinite; 
+    }
+
+    .toast-sender { font-size: 16px; font-weight: 800; color: #0f172a; }
+    .toast-subject { font-size: 13.5px; font-weight: 700; color: #1e293b; margin-top: 2px; }
+    .toast-body { font-size: 13.5px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    #email-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1999;
+      display: none;
+    }
+    #email-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2000;
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      display: none;
+      overflow: hidden;
+    }
+
+    /* FIXED: The cursor animation now ONLY changes the border color, so the text won't flash! */
+    .typing-cursor {
+      border-right: 2px solid #dc2626;
+      animation: cursorBlink 1s step-end infinite;
+    }
+    @keyframes cursorBlink {
+      50% { border-color: transparent; }
+    }
   </style>
 </head>
-<body class="min-h-screen text-slate-800 antialiased relative">
+<body class="antialiased relative">
 
-  <canvas id="gameCanvas"></canvas>
+  <img src="assets/word_header.png" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 40; border: none; outline: none;" alt="Word Header">
 
-  <div id="livesDisplay" class="fixed top-16 right-4 text-3xl tracking-widest drop-shadow-md z-50 pointer-events-none"></div>
-
-  <!-- Header: 'platform' class removed to fix the ghost ceiling bug -->
-  <header class="header-nav sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm relative">
+  <div id="word-page">
+    <h1 id="doc-title" class="fallable text-3xl font-bold mb-6" style="font-family: 'Aptos', sans-serif;">Very important notes</h1>
     
-    <div id="taskDisplay" class="absolute left-1/2 top-2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-2.5 rounded-full border-2 border-[#0067b1] shadow-lg text-[15px] font-bold z-50 pointer-events-none whitespace-nowrap">
-    </div>
-
-    <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 mt-8 sm:mt-0">
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2">
-          <div class="grid h-8 w-8 place-items-center rounded-md bg-carrier-blue text-white font-bold">C</div>
-          <span class="text-base font-bold text-slate-900 hidden sm:inline">Carrier Copilot Hub</span>
-        </div>
-        <div class="h-5 w-px bg-slate-200 hidden sm:block"></div>
-        <div class="dept-selector-box flex items-center gap-1.5 bg-slate-100 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700">
-          <span class="text-slate-400">Dept:</span>
-          <select id="deptSelector" class="bg-transparent font-semibold text-carrier-blue outline-none cursor-pointer">
-            <option value="All">All Carrier</option>
-          </select>
-        </div>
-      </div>
-      <div class="flex items-center gap-1 overflow-x-auto py-1">
-        <button data-tab="prompts" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium bg-carrier-blue text-white transition">Prompts</button>
-        <button data-tab="steal-my-prompt" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Steal My Prompt</button>
-      </div>
-    </nav>
-  </header>
-
-  <main class="mx-auto max-w-7xl px-4 py-6">
-
-    <section id="tab-prompts" class="tab-content block space-y-10">
+    <div id="text-container">
+      <p class="fallable word-text">The fundamental principle of air conditioning relies on the vapor-compression refrigeration cycle, which manipulates the boiling point of a refrigerant through targeted pressure changes. Thermal energy is systematically absorbed from the indoor space and rejected to the outdoor environment. This closed-loop system consists of four primary thermodynamic stages: compression, condensation, adiabatic expansion, and evaporation.</p>
       
-      <div class="overflow-hidden rounded-2xl bg-gradient-to-r from-[#003B6D] via-[#0067b1] to-[#0082E6] p-6 md:p-8 text-white shadow-lg relative">
-        <div class="max-w-2xl relative z-10 space-y-2">
-          <div><span class="hero-badge inline-block rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-xs font-semibold uppercase tracking-wider">Enterprise AI Enablement</span></div>
-          <div><h1 class="hero-title inline-block text-2xl md:text-3xl font-extrabold">Work Smarter Across Carrier</h1></div>
-        </div>
+      <p class="fallable word-text">During the initial compression phase, low-pressure, low-temperature refrigerant vapor enters the hermetic or semi-hermetic compressor. The compressor applies mechanical work driven by the motor armature, significantly increasing both the pressure and temperature of the gas. This superheated vapor is then discharged into the condenser coil at a high velocity.</p>
+      
+      <p class="word-text" id="safe-paragraph" style="margin-top: 30px; font-weight: bold;">Upon entering the condenser array, the high-pressure superheated vapor exchanges heat with the ambient outdoor air, usually assisted by variable-speed axial fans. As sensible and latent thermal energy is dissipated into the environment, the refrigerant undergoes an isobaric phase change, gradually condensing into a high-pressure subcooled liquid.</p>
+      
+      <p class="word-text" style="margin-top: 30px;">The thermostatic expansion valve (TXV) must precisely meter the liquid refrigerant flow into the evaporator coil to maintain optimal superheat parameters and prevent liquid slugging at the compressor intake. If this calibration drifts, the entire thermal exchange coefficient will degrade exponentially over extended duty cycles.</p>
+      
+      <p class="word-text">As the high-pressure liquid forces its way through the expansion valve orifice, it experiences an immediate adiabatic pressure drop. This sudden reduction in pressure significantly lowers the saturation temperature of the refrigerant, causing a localized boiling effect known as flash gas. The remaining low-temperature liquid-vapor emulsion enters the indoor evaporator coil, completing the cycle.</p>
+    </div>
+  </div>
+
+  <canvas id="introCanvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-[999]"></canvas>
+
+  <div id="email-toast" onclick="openEmail()">
+    <h4 class="toast-sender">Boss</h4>
+    <p class="toast-subject">Urgent: send deck</p>
+    <p class="toast-body">We need to share our findings...</p>
+  </div>
+
+  <div id="email-modal-overlay"></div>
+  <div id="email-modal">
+    <div class="bg-[#0067b1] px-4 py-3 flex justify-between items-center">
+      <h2 class="text-white font-semibold text-base">Message - Outlook</h2>
+    </div>
+    <div class="p-6">
+      <div class="border-b border-slate-100 pb-4 mb-4">
+        <p class="text-sm"><span class="font-bold text-slate-500 w-16 inline-block">From:</span> Boss</p>
+        <p class="text-sm mt-1"><span class="font-bold text-slate-500 w-16 inline-block">Subject:</span> Urgent: send deck</p>
       </div>
-
-      <div class="space-y-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4">
-          <div>
-            <h2 class="text-lg font-bold text-slate-900">Action Prompt Library</h2>
-          </div>
-
-          <div class="flex flex-wrap gap-1.5" id="filterMenu">
-            <!-- These keep the .platform class as they are your actual targets -->
-            <button data-filter="all" class="filter-btn platform rounded-full bg-carrier-blue px-3.5 py-1.5 text-xs font-semibold text-white transition-transform">All Tasks</button>
-            <button data-filter="fun" class="filter-btn platform rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200 hover:bg-amber-50 transition-transform">Discover</button>
-            <button data-filter="summarize" class="filter-btn platform rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 transition-transform">Summarize</button>
-            <button data-filter="write" class="filter-btn platform rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 transition-transform">Write</button>
-            <button data-filter="analyze" class="filter-btn platform rounded-full bg-white px-3.5 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 transition-transform">Analyze</button>
-          </div>
-        </div>
-
-        <div id="promptCardContainer" class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 transition-all duration-500">
-
-          <!-- LEVEL 1 -->
-          <article id="word-summary" data-level="1" data-category="summarize" class="prompt-card h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Summarize my notes</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Take my messy, disorganized meeting notes and create a structured summary with bullet points.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          
-          <article id="pwp-pretty" data-level="1" data-category="fun" class="prompt-card h-full flex flex-col rounded-xl border border-amber-200 bg-gradient-to-b from-amber-50/50 to-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Make Pretty</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Format Slides</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Reformat these text-heavy slides into a visually appealing 3-slide presentation, adding suggested icons.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          
-          <article id="outlook-write" data-level="1" data-category="write" class="prompt-card h-full flex flex-col rounded-xl border border-purple-200 bg-gradient-to-b from-purple-50/50 to-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-800">Write</span><span class="text-[11px] text-slate-400 font-medium">Outlook</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Draft Executive Email</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft an email to executives summarizing the key findings in the attached presentation and proposing a time for a review.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-800"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          
-          <article id="excel-analyze" data-level="1" data-category="analyze" class="prompt-card h-full flex flex-col rounded-xl border border-green-200 bg-gradient-to-b from-green-50/50 to-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Spot Data Trends</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Analyze this dataset and show the top 3 quarterly trends and outlier values.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-
-          <!-- LEVEL 2 -->
-          <article id="pwp-build" data-level="2" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Write</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Build a Deck</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Take the Word document summary and convert it into a concise 5-slide presentation outline.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article id="word-draft" data-level="2" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Draft Customer Proposal</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a commercial HVAC proposal highlighting energy efficiency ROI.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article id="teams-catchup" data-level="2" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Teams</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Catch Up on Call</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Summarize the transcript of this meeting into key decisions made and owner action items.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article id="chat-simplify" data-level="2" data-category="fun" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Discover</span><span class="text-[11px] text-slate-400 font-medium">Word / Chat</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Simplify Tech Specs</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Explain this complex HVAC technical specification document as if I were a 10 year old.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-
-          <!-- LEVEL 3 -->
-          <article data-level="3" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Fix Macro</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Identify the error in this VBA macro used for supply chain tracking.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="3" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Vendor Contract Risk</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Extract key SLAs and liability caps from this vendor contract.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="3" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Write</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Sales Pitch Deck</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Generate an outline for a 10-slide sales pitch aimed at logistics clients.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="3" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-purple-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-800">Write</span><span class="text-[11px] text-slate-400 font-medium">Outlook</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Meeting Invite</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a compelling meeting invitation for the Q3 All-Hands sync.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-800"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-
-          <!-- LEVEL 4 (Expanded Library) -->
-          <article id="outlook-write" data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Product Launch</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a 1-page product launch brief for our new chiller line.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Budget Review</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Identify departments currently over their allocated Q2 travel budget.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span><span class="text-[11px] text-slate-400 font-medium">Teams</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Sync Agenda</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Create a structured 45-minute agenda for our weekly engineering sync.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Analyze</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Extract Metrics</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Review these slides and extract all financial projections.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="fun" class="prompt-card hidden h-full flex flex-col rounded-xl border border-purple-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-800">Discover</span><span class="text-[11px] text-slate-400 font-medium">Outlook</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Tone Checker</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Analyze my sent folder to see if I sound too aggressive.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-800"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Policy Update</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Summarize the 2026 travel policy changes into 5 bullets.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Analyze</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Compare Decks</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Identify the differences between Q1 and Q2 marketing decks.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Write</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Generate Formulas</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Write an Excel formula to calculate year-over-year growth.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="fun" class="prompt-card hidden h-full flex flex-col rounded-xl border border-purple-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-800">Discover</span><span class="text-[11px] text-slate-400 font-medium">Outlook</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Find Expertise</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Who in my organization knows the most about Python?</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-800"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Summarize</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">TL;DR Deck</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Summarize this 40-slide presentation into 1 paragraph.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Write</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">VBA Scripting</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Write a VBA script to automatically format pivot tables.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Competitor Review</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Analyze this competitor's press release for weaknesses.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          
-          <!-- NEW: 8 Additional Level 4 Cards -->
-          <article data-level="4" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Teams</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Weekly Sync Notes</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Extract action items from the 45-minute project alignment call.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Risk Assessment</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Scan this 20-page compliance manual for regulatory risks.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="fun" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Discover</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Design Trends</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Recommend new visual layouts based on tech industry standards.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Press Release</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a press release announcing the new sustainability initiative.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Q1 Financials</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Provide a high-level summary of the Q1 revenue spreadsheets.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Teams</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Sentiment Check</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Gauge team morale based on channel updates over the last month.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Write</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Training Module</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Structure a 15-slide onboarding deck for new hires.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-          <article data-level="4" data-category="fun" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
-            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Discover</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
-            <h3 class="mt-3 font-bold text-slate-900">Pivot Table Help</h3>
-            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Teach me how to group data dynamically in a pivot table.</p>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
-          </article>
-
-        </div>
+      <p class="text-slate-700 leading-relaxed">
+        We need to share our findings, can you summarize your notes, build a deck and send it asap?
+      </p>
+      <div class="mt-8 flex justify-end">
+        <!-- FIXED: Button text updated -->
+        <button onclick="triggerGravity()" class="bg-[#0067b1] hover:bg-[#00518c] text-white px-6 py-2 rounded-md font-semibold transition">Do it with AI</button>
       </div>
+    </div>
+  </div>
 
-      <!-- Copilot Studio Section -->
-      <div class="space-y-6 pt-4 border-t border-slate-200">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="inline-block rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">Copilot Studio</span>
-            <h2 class="text-lg font-bold text-slate-900">Copilot Custom Agent Builders</h2>
-          </div>
-          <p class="text-xs text-slate-500 mt-0.5">Deploy dedicated AI agents pre-configured with Carrier business logic, workflows, and enterprise connectors.</p>
-        </div>
+  <div class="fixed bottom-4 right-4 z-[3000] cursor-pointer bg-slate-900/40 hover:bg-slate-900/80 px-3 py-1.5 rounded transition" onclick="window.location.href='game.html'">
+    <p class="text-xs text-white font-medium">Press ENTER or Click to skip</p>
+  </div>
 
-        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
-          <article data-dept="Engineering" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="platform inline-block rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
-                <span class="text-[11px] text-indigo-600 font-semibold">Engineering</span>
-              </div>
-              <h3 class="mt-3 font-bold text-slate-900">HVAC Tech Assist Agent</h3>
-              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">System instructions to query Carrier technical manuals, decode equipment fault codes, and walk field technicians through troubleshooting steps.</p>
-            </div>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
-              <span>Build my HVAC Tech Assist agent</span>
-            </button>
-          </article>
-
-          <article data-dept="HR" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="platform inline-block rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
-                <span class="text-[11px] text-indigo-600 font-semibold">HR & Ops</span>
-              </div>
-              <h3 class="mt-3 font-bold text-slate-900">HR Policy Navigator Agent</h3>
-              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">System prompt for answering internal employee inquiries regarding Carrier benefits, PTO, compliance safety protocols, and onboarding milestones.</p>
-            </div>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
-              <span>Build my HR Policy Navigator agent</span>
-            </button>
-          </article>
-
-          <article data-dept="Sales" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="platform inline-block rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
-                <span class="text-[11px] text-indigo-600 font-semibold">Sales</span>
-              </div>
-              <h3 class="mt-3 font-bold text-slate-900">RFP & Bid Intelligence Agent</h3>
-              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">Custom agent configuration to scan inbound customer tender PDFs, evaluate Carrier product compatibility, and draft executive proposal responses.</p>
-            </div>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
-              <span>Build my Bid Intelligence agent</span>
-            </button>
-          </article>
-
-          <article data-dept="Supply Chain" class="agent-card flex flex-col justify-between rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50/40 via-white to-white p-5 shadow-sm">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="platform inline-block rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-800">Agent Spec</span>
-                <span class="text-[11px] text-indigo-600 font-semibold">Supply Chain</span>
-              </div>
-              <h3 class="mt-3 font-bold text-slate-900">Supply Chain Tracker Agent</h3>
-              <p class="prompt-text mt-2 text-xs leading-relaxed text-slate-600">Agent instructions to connect directly to ERP inventory feeds, detect shipment delays over 10 days, and automate vendor follow-up drafts.</p>
-            </div>
-            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
-              <span>Build my Supply Chain Tracker agent</span>
-            </button>
-          </article>
-
-        </div>
-      </div>
-
-    </section>
-
-    <!-- OTHER TABS -->
-    <section id="tab-steal-my-prompt" class="tab-content hidden space-y-10">
-      <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-xl font-bold text-slate-900">Steal My Prompt</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Real battle-tested prompts from Carrier colleagues.</p>
-        </div>
-      </div>
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <article class="steal-prompt-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h4 class="text-xs font-bold text-slate-900">Alex Rivera</h4>
-          <p class="text-[10px] text-slate-500">Commercial Account Manager</p>
-          <p class="mt-2 text-xs text-slate-700">RFP Risk & Opportunity Summarizer</p>
-        </article>
-        <article class="steal-prompt-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h4 class="text-xs font-bold text-slate-900">Marcus Vance</h4>
-          <p class="text-[10px] text-slate-500">Lead Systems Engineer</p>
-          <p class="mt-2 text-xs text-slate-700">Fault Code Diagnostic Helper</p>
-        </article>
-        <article class="steal-prompt-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h4 class="text-xs font-bold text-slate-900">Elena Rostova</h4>
-          <p class="text-[10px] text-slate-500">Global Inventory Manager</p>
-          <p class="mt-2 text-xs text-slate-700">Supplier Delay Anomaly Finder</p>
-        </article>
-        <article class="steal-prompt-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h4 class="text-xs font-bold text-slate-900">Karen Miller</h4>
-          <p class="text-[10px] text-slate-500">HR Operations Lead</p>
-          <p class="mt-2 text-xs text-slate-700">Role Onboarding Roadmap</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="tab-cheatsheets" class="tab-content hidden space-y-6">
-      <h2 class="text-xl font-bold text-slate-900">1-Page Job Guides</h2>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="cheatsheet-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 class="font-bold text-sm">Copilot in Word (W)</h3>
-        </div>
-        <div class="cheatsheet-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 class="font-bold text-sm">Copilot in Excel (X)</h3>
-        </div>
-        <div class="cheatsheet-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 class="font-bold text-sm">Copilot in Teams (T)</h3>
-        </div>
-        <div class="cheatsheet-card platform rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 class="font-bold text-sm">Copilot in PowerPoint (P)</h3>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <script src="js/map.js"></script>
-  <script src="js/player.js"></script>
-  <script src="js/game.js"></script>
+  <script src="js/intro.js"></script>
 </body>
 </html>
