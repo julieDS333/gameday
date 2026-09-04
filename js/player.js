@@ -43,10 +43,26 @@ class Player {
     this.scaleX += (1.0 - this.scaleX) * 0.2;
     this.scaleY += (1.0 - this.scaleY) * 0.2;
 
+    // Platform drop logic (Down Arrow)
     if ((keys['ArrowDown'] || keys['KeyS']) && this.dropTimer === 0) {
-      this.dropTimer = 12; 
-      this.grounded = false;
-      this.currentPlatformElement = null;
+      // Prevent dropping through if standing on an interactable target (Filter Button or AC Block)
+      let isOnInteractable = false;
+      if (this.currentPlatformElement && this.currentPlatformElement.classList.contains('filter-btn')) {
+          isOnInteractable = true;
+      }
+      if (typeof gameManager !== 'undefined' && gameManager.acBlock.active) {
+          const ac = gameManager.acBlock;
+          // Check physical bounds for AC block
+          if (this.x + this.w > ac.x && this.x < ac.x + ac.w && Math.abs((this.y + this.h) - ac.y) < 15) {
+              isOnInteractable = true;
+          }
+      }
+
+      if (!isOnInteractable) {
+        this.dropTimer = 12; 
+        this.grounded = false;
+        this.currentPlatformElement = null;
+      }
     }
 
     if (keys['ArrowRight'] || keys['KeyD']) {
@@ -158,8 +174,6 @@ class Player {
   }
 
   interact() {
-    // FIX: Removed the '!this.carriedPrompt' check! 
-    // Now, if you are grounded on a card, Ctrl+C will ALWAYS overwrite your current prompt.
     if (this.grounded && this.currentPlatformElement) {
       const card = this.currentPlatformElement.closest('.prompt-card');
       if (card && card.id) { 

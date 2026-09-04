@@ -30,7 +30,7 @@
 
   <div id="livesDisplay" class="fixed top-16 right-4 text-3xl tracking-widest drop-shadow-md z-50 pointer-events-none"></div>
 
-  <!-- FIXED: Removed 'platform' class from the sticky header to prevent ghost ceilings -->
+  <!-- Header: 'platform' class removed to fix the ghost ceiling bug -->
   <header class="header-nav sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm relative">
     
     <div id="taskDisplay" class="absolute left-1/2 top-2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-2.5 rounded-full border-2 border-[#0067b1] shadow-lg text-[15px] font-bold z-50 pointer-events-none whitespace-nowrap">
@@ -43,7 +43,6 @@
           <span class="text-base font-bold text-slate-900 hidden sm:inline">Carrier Copilot Hub</span>
         </div>
         <div class="h-5 w-px bg-slate-200 hidden sm:block"></div>
-        <!-- FIXED: Removed 'platform' class -->
         <div class="dept-selector-box flex items-center gap-1.5 bg-slate-100 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700">
           <span class="text-slate-400">Dept:</span>
           <select id="deptSelector" class="bg-transparent font-semibold text-carrier-blue outline-none cursor-pointer">
@@ -52,7 +51,6 @@
         </div>
       </div>
       <div class="flex items-center gap-1 overflow-x-auto py-1">
-        <!-- FIXED: Removed 'platform' class -->
         <button data-tab="prompts" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium bg-carrier-blue text-white transition">Prompts</button>
         <button data-tab="steal-my-prompt" class="nav-tab rounded-md px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Steal My Prompt</button>
       </div>
@@ -103,7 +101,6 @@
             <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
           </article>
           
-          <!-- UPDATED: More professional target for Level 4 -->
           <article id="outlook-write" data-level="1" data-category="write" class="prompt-card h-full flex flex-col rounded-xl border border-purple-200 bg-gradient-to-b from-purple-50/50 to-white p-5 shadow-sm">
             <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-purple-800">Write</span><span class="text-[11px] text-slate-400 font-medium">Outlook</span></div>
             <h3 class="mt-3 font-bold text-slate-900">Draft Executive Email</h3>
@@ -170,8 +167,8 @@
             <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-purple-700 px-3 py-2 text-xs font-semibold text-white hover:bg-purple-800"><span>Grab Prompt (Ctrl+C)</span></button>
           </article>
 
-          <!-- LEVEL 4 -->
-          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+          <!-- LEVEL 4 (Expanded Library) -->
+          <article id="outlook-write" data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
             <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
             <h3 class="mt-3 font-bold text-slate-900">Product Launch</h3>
             <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a 1-page product launch brief for our new chiller line.</p>
@@ -242,6 +239,56 @@
             <h3 class="mt-3 font-bold text-slate-900">Competitor Review</h3>
             <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Analyze this competitor's press release for weaknesses.</p>
             <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          
+          <!-- NEW: 8 Additional Level 4 Cards -->
+          <article data-level="4" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Teams</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Weekly Sync Notes</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Extract action items from the 45-minute project alignment call.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Risk Assessment</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Scan this 20-page compliance manual for regulatory risks.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          <article data-level="4" data-category="fun" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Discover</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Design Trends</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Recommend new visual layouts based on tech industry standards.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Write</span><span class="text-[11px] text-slate-400 font-medium">Word</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Press Release</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Draft a press release announcing the new sustainability initiative.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          <article data-level="4" data-category="summarize" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Summarize</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Q1 Financials</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Provide a high-level summary of the Q1 revenue spreadsheets.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          <article data-level="4" data-category="analyze" class="prompt-card hidden h-full flex flex-col rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-carrier-blue">Analyze</span><span class="text-[11px] text-slate-400 font-medium">Teams</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Sentiment Check</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Gauge team morale based on channel updates over the last month.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-carrier-blue px-3 py-2 text-xs font-semibold text-white hover:bg-carrier-blue-dark"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          <article data-level="4" data-category="write" class="prompt-card hidden h-full flex flex-col rounded-xl border border-amber-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">Write</span><span class="text-[11px] text-slate-400 font-medium">PowerPoint</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Training Module</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Structure a 15-slide onboarding deck for new hires.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700"><span>Grab Prompt (Ctrl+C)</span></button>
+          </article>
+          <article data-level="4" data-category="fun" class="prompt-card hidden h-full flex flex-col rounded-xl border border-green-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between"><span class="platform inline-block rounded-md bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-800">Discover</span><span class="text-[11px] text-slate-400 font-medium">Excel</span></div>
+            <h3 class="mt-3 font-bold text-slate-900">Pivot Table Help</h3>
+            <p class="prompt-text mt-2 flex-1 text-xs leading-relaxed text-slate-600">Teach me how to group data dynamically in a pivot table.</p>
+            <button class="platform copy-btn mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-700"><span>Grab Prompt (Ctrl+C)</span></button>
           </article>
 
         </div>

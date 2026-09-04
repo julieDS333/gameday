@@ -8,8 +8,18 @@ function syncCanvas() {
 window.addEventListener('resize', syncCanvas);
 syncCanvas();
 
+// PRELOAD ASSETS (Fixes empty bubbles)
+const preloadedEmail = new Image();
+preloadedEmail.src = 'assets/email.png';
+
+const preloadedCoffee = new Image();
+preloadedCoffee.src = 'assets/coffee.png';
+
 const map = new Map();
-const player = new Player(window.innerWidth / 2 - 18, 20);
+
+// Random Spawn Location at start!
+const randomSpawnX = Math.random() * (window.innerWidth - 36);
+const player = new Player(randomSpawnX, 20);
 
 const GAME_LEVELS = [
   { id: 1, task: 'Summarize the Word Doc', targetApp: 'word', targetPrompt: 'word-summary' },
@@ -23,9 +33,8 @@ const GAME_LEVELS = [
 class EmailProjectile {
   constructor(x, y, facingLeft) {
       this.x = x; this.y = y;
-      this.w = 64; this.h = 64; // Scaled 2x larger
-      this.img = new Image();
-      this.img.src = 'assets/email.png';
+      this.w = 64; this.h = 64;
+      this.img = preloadedEmail; // Reference preloaded asset
       
       const speed = 2.5;
       this.vx = facingLeft ? -1.2 : 1.2; 
@@ -42,7 +51,6 @@ class EmailProjectile {
       const centerX = renderX + radius;
       const centerY = renderY + radius;
 
-      // Draw Glowing Bubble Container
       ctx.save();
       ctx.shadowColor = 'rgba(239, 68, 68, 0.5)'; 
       ctx.shadowBlur = 14;
@@ -62,13 +70,11 @@ class EmailProjectile {
       ctx.stroke();
       ctx.restore();
 
-      // Draw Inner Asset (2x larger)
       if (this.img.complete) {
           const imgSize = 36;
           ctx.drawImage(this.img, centerX - imgSize / 2, centerY - imgSize / 2, imgSize, imgSize);
       }
       
-      // Player Collision Check
       if (player.x < this.x + this.w && player.x + player.w > this.x &&
           player.y < this.y + this.h && player.y + player.h > this.y) {
           if (typeof gameManager !== 'undefined') gameManager.takeDamage();
@@ -85,15 +91,14 @@ class EmailProjectile {
 class CoffeePickup {
   constructor(x, y) {
       this.x = x; this.y = y;
-      this.w = 64; this.h = 64; // Scaled 2x larger
-      this.vy = -6; 
+      this.w = 64; this.h = 64;
+      this.vy = -9; // Higher jump
       this.vx = (Math.random() - 0.5) * 4;
       this.active = true;
-      this.img = new Image();
-      this.img.src = 'assets/coffee.png';
+      this.img = preloadedCoffee; // Reference preloaded asset
   }
   update(ctx, platforms) {
-      this.vy += 0.5; 
+      this.vy += 0.25; // Slower gravity
       this.x += this.vx;
       this.y += this.vy;
       
@@ -112,7 +117,6 @@ class CoffeePickup {
       const centerX = renderX + radius;
       const centerY = renderY + radius;
 
-      // Draw Glowing Coffee Bubble Container
       ctx.save();
       ctx.shadowColor = 'rgba(234, 179, 8, 0.5)'; 
       ctx.shadowBlur = 14;
@@ -132,7 +136,6 @@ class CoffeePickup {
       ctx.stroke();
       ctx.restore();
 
-      // Draw Inner Coffee Asset (2x larger)
       if (this.img.complete) {
           const imgSize = 40;
           ctx.drawImage(this.img, centerX - imgSize / 2, centerY - imgSize / 2, imgSize, imgSize);
@@ -181,7 +184,6 @@ class ACBlock {
           this.coffees--;
           this.hitOffset = -10; 
           setTimeout(() => this.hitOffset = 0, 100);
-          // Spawn centered 64px coffee bubble
           gameManager.coffees.push(new CoffeePickup(this.x + this.w/2 - 32, this.y - 40));
       }
   }
@@ -199,6 +201,7 @@ class ACBlock {
           }
       }
 
+      // Landing Collision
       if (player.dropTimer === 0 && player.vy >= 0 &&
           player.x + player.w > this.x + 2 && player.x < this.x + this.w - 2 &&
           player.y + player.h >= this.y && player.y + player.h - player.vy <= this.y + 12) {
@@ -206,6 +209,8 @@ class ACBlock {
           player.vy = 0;
           player.grounded = true;
       }
+
+      // Ceiling Collision (Headbutt)
       if (player.vy < 0 && 
           player.x + player.w > this.x + 4 && player.x < this.x + this.w - 4 &&
           player.y <= this.y + this.h && player.y - player.vy >= this.y + this.h) {
@@ -213,6 +218,8 @@ class ACBlock {
           player.vy = 0;
           this.hit();
       }
+
+      // Wall Collision
       if (player.y + player.h > this.y + 4 && player.y < this.y + this.h - 4) {
           if (player.vx > 0 && player.x + player.w >= this.x && player.x + player.w <= this.x + 10) {
               player.touchingWall = true; player.wallDir = 1; player.x = this.x - player.w; player.vx = 0;
@@ -233,7 +240,6 @@ class GameManager {
     this.invulnerable = false;
     this.levelTime = 0;
     
-    // Removed boss logic here, added lastEmailTime for randomized email spawning
     this.lastEmailTime = 0;
     
     this.acBlock = new ACBlock();
@@ -260,6 +266,15 @@ class GameManager {
         });
       }
     }, 5000);
+  }
+  
+  // Randomize card order at the start of a session
+  shuffleCards() {
+    const cards = document.querySelectorAll('.prompt-card');
+    cards.forEach(card => {
+        // Assign random flex order 
+        card.style.order = Math.floor(Math.random() * 1000);
+    });
   }
 
   getCurrentObjective() {
@@ -289,12 +304,14 @@ class GameManager {
       this.lives = 3;
       this.level = 1;
       
-      player.x = window.innerWidth / 2 - 18;
+      // Random respawn X coordinate
+      player.x = Math.random() * (window.innerWidth - player.w);
       player.y = 20;
       player.vx = 0;
       player.vy = 0;
       player.carriedPrompt = null;
-
+      
+      this.shuffleCards(); // Shuffle layout on new game
       this.triggerLevelTransition();
   }
 
@@ -353,7 +370,6 @@ class GameManager {
     this.activeCategory = 'all';
     this.levelTime = 0;
     
-    // Removed boss reset logic, reset email timer instead
     this.lastEmailTime = 0;
     this.emails = [];
     this.coffees = [];
@@ -467,9 +483,40 @@ const gameManager = new GameManager();
 const keys = {};
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-    player.jump();
+  
+  // Event-driven Mario Pipe Mechanic Check
+  if (e.code === 'ArrowDown' || e.code === 'ArrowUp' || e.code === 'KeyS' || e.code === 'KeyW') {
+      let interacted = false;
+      
+      // Check for Filter Button activation
+      if (player.grounded && player.currentPlatformElement && player.currentPlatformElement.classList.contains('filter-btn')) {
+          const category = player.currentPlatformElement.getAttribute('data-filter');
+          gameManager.selectCategory(category, player.currentPlatformElement);
+          player.vy = -6; // Visual bounce feedback
+          player.grounded = false;
+          interacted = true;
+      }
+      
+      // Check for AC Block activation (Canvas element physical boundaries)
+      const ac = gameManager.acBlock;
+      if (ac.active && ac.coffees > 0) {
+          if (player.grounded && player.x + player.w > ac.x + 2 && player.x < ac.x + ac.w - 2 && 
+              Math.abs((player.y + player.h) - ac.y) < 15) {
+             ac.hit();
+             player.vy = -6; // Visual bounce feedback
+             player.grounded = false;
+             interacted = true;
+          }
+      }
+      
+      // Only jump if we didn't just activate something using an "Up" button
+      if (!interacted && (e.code === 'ArrowUp' || e.code === 'KeyW')) {
+          player.jump();
+      }
+  } else if (e.code === 'Space') {
+      player.jump();
   }
+  
   if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC') {
     e.preventDefault(); 
     player.interact();
@@ -494,14 +541,13 @@ function gameLoop() {
   if (gameManager.level === 3) emailInterval = 10000;
   if (gameManager.level === 4) emailInterval = 5000;
   
-  // UPDATED: Spawning emails randomly from the bottom of the document
   if (gameManager.levelTime - gameManager.lastEmailTime >= emailInterval) {
       gameManager.lastEmailTime = gameManager.levelTime;
       const docWidth = document.documentElement.scrollWidth || window.innerWidth;
       const docHeight = document.documentElement.scrollHeight || window.innerHeight;
       
       const spawnX = Math.random() * (docWidth - 100) + 50;
-      const spawnY = docHeight + 50; // Start slightly below the visible page
+      const spawnY = docHeight + 50;
       const facingLeft = Math.random() > 0.5;
       
       gameManager.emails.push(new EmailProjectile(
@@ -533,7 +579,7 @@ function gameLoop() {
 
   gameManager.drawPortals(ctx);
   
-  gameManager.acBlock.update(ctx);
+  gameManager.acBlock.update(ctx); 
   
   gameManager.coffees.forEach(c => c.update(ctx, map.platforms));
   gameManager.coffees = gameManager.coffees.filter(c => c.active); 
@@ -552,6 +598,7 @@ function gameLoop() {
 
 window.addEventListener('load', () => {
   syncCanvas();
+  gameManager.shuffleCards(); // Initial shuffle!
   gameManager.loadLevelCards();
   gameManager.updateHUD();
   map.refreshPlatforms();
