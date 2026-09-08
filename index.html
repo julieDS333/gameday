@@ -6,21 +6,19 @@
   <title>Intro - Carrier Copilot Hub</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background-color: #1e1e1e; margin: 0; overflow: hidden; }
+    body { background-color: #1e1e1e; margin: 0; overflow-x: hidden; }
     
-    /* FIXED: Responsive Word Page */
     #word-page {
       position: relative;
       z-index: 10;
       background: white;
-      width: 100%;
-      max-width: 800px;
+      width: 800px;
       min-height: 100vh;
       margin: 0 auto;
-      box-shadow: 0 0 30px rgba(0,0,0,0.6); 
-      padding-top: 150px; 
-      padding-left: 5vw;
-      padding-right: 5vw;
+      box-shadow: 0 0 30px rgba(0,0,0,0.8); 
+      padding-top: 260px; 
+      padding-left: 80px;
+      padding-right: 80px;
       padding-bottom: 100px;
       box-sizing: border-box;
     }
@@ -103,7 +101,7 @@
 </head>
 <body class="antialiased relative">
 
-  <img src="assets/word_header.png" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 40; border: none; outline: none;" alt="Word Header">
+  <img src="assets/word_header.png" style="position: fixed; top: 0; left: 0; width: 100%; min-width: 1200px; z-index: 40; border: none; outline: none;" alt="Word Header">
 
   <div id="word-page">
     <h1 id="doc-title" class="fallable text-3xl font-bold mb-6" style="font-family: 'Aptos', sans-serif;">Very important notes</h1>
@@ -111,17 +109,18 @@
     <div id="text-container">
       <p class="fallable word-text">The fundamental principle of air conditioning relies on the vapor-compression refrigeration cycle, which manipulates the boiling point of a refrigerant through targeted pressure changes. Thermal energy is systematically absorbed from the indoor space and rejected to the outdoor environment. This closed-loop system consists of four primary thermodynamic stages: compression, condensation, adiabatic expansion, and evaporation.</p>
       
-      <p class="fallable word-text">During the initial compression phase, low-pressure, low-temperature refrigerant vapor enters the hermetic or semi-hermetic compressor. The compressor applies mechanical work driven by the motor armature, significantly increasing both the pressure and temperature of the gas. This superheated vapor is then discharged into the condenser coil at a high velocity.</p>
+      <p class="word-text" id="safe-paragraph" style="margin-top: 30px; font-weight: bold;">During the initial compression phase, low-pressure, low-temperature refrigerant vapor enters the hermetic or semi-hermetic compressor. The compressor applies mechanical work driven by the motor armature, significantly increasing both the pressure and temperature of the gas. This superheated vapor is then discharged into the condenser coil at a high velocity.</p>
       
-      <p class="word-text" id="safe-paragraph" style="margin-top: 30px; font-weight: bold;">Upon entering the condenser array, the high-pressure superheated vapor exchanges heat with the ambient outdoor air, usually assisted by variable-speed axial fans. As sensible and latent thermal energy is dissipated into the environment, the refrigerant undergoes an isobaric phase change, gradually condensing into a high-pressure subcooled liquid.</p>
+      <p class="fallable word-text" style="margin-top: 30px;">Upon entering the condenser array, the high-pressure superheated vapor exchanges heat with the ambient outdoor air, usually assisted by variable-speed axial fans. As sensible and latent thermal energy is dissipated into the environment, the refrigerant undergoes an isobaric phase change, gradually condensing into a high-pressure subcooled liquid.</p>
       
-      <p class="word-text" style="margin-top: 30px;">The thermostatic expansion valve (TXV) must precisely meter the liquid refrigerant flow into the evaporator coil to maintain optimal superheat parameters and prevent liquid slugging at the compressor intake. If this calibration drifts, the entire thermal exchange coefficient will degrade exponentially over extended duty cycles.</p>
+      <p class="fallable word-text" style="margin-top: 30px;">The thermostatic expansion valve (TXV) must precisely meter the liquid refrigerant flow into the evaporator coil to maintain optimal superheat parameters and prevent liquid slugging at the compressor intake. If this calibration drifts, the entire thermal exchange coefficient will degrade exponentially over extended duty cycles.</p>
       
-      <p class="word-text">As the high-pressure liquid forces its way through the expansion valve orifice, it experiences an immediate adiabatic pressure drop. This sudden reduction in pressure significantly lowers the saturation temperature of the refrigerant, causing a localized boiling effect known as flash gas. The remaining low-temperature liquid-vapor emulsion enters the indoor evaporator coil, completing the cycle.</p>
+      <p class="fallable word-text">As the high-pressure liquid forces its way through the expansion valve orifice, it experiences an immediate adiabatic pressure drop. This sudden reduction in pressure significantly lowers the saturation temperature of the refrigerant, causing a localized boiling effect known as flash gas. The remaining low-temperature liquid-vapor emulsion enters the indoor evaporator coil, completing the cycle.</p>
     </div>
   </div>
 
-  <canvas id="introCanvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-[999]"></canvas>
+  <!-- FIXED: Canvas is now z-[30] so it stays UNDER the z-40 header! -->
+  <canvas id="introCanvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-[30]"></canvas>
 
   <div id="email-toast" onclick="openEmail()">
     <h4 class="toast-sender">Boss</h4>

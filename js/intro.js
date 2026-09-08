@@ -5,19 +5,7 @@ function syncCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
-
-// FIXED: Listen for window resizes and snap the player to the new paragraph location!
-window.addEventListener('resize', () => {
-    syncCanvas();
-    const safePara = document.getElementById('safe-paragraph');
-    if (safePara && (gameState === 'WAITING' || gameState === 'MODAL' || gameState === 'TYPING')) {
-        const rect = safePara.getBoundingClientRect();
-        targetY = rect.top - player.h + 2;
-        player.x = rect.left + 20; 
-        player.y = targetY; // Snap immediately to new layout
-    }
-});
-
+window.addEventListener('resize', syncCanvas);
 syncCanvas();
 
 const climb1 = new Image(); climb1.src = 'assets/female_climb1.png';
@@ -31,7 +19,6 @@ const player = {
     y: 0,
     w: 36,   
     h: 57.6, 
-    frame: 0,
     timer: 0
 };
 
@@ -44,9 +31,10 @@ function init() {
 
     const rect = safePara.getBoundingClientRect();
     
+    // Start way below the screen to climb up
     targetY = rect.top - player.h + 2;
     player.x = rect.left + 20; 
-    player.y = targetY + 400; 
+    player.y = targetY + 600; 
     
     requestAnimationFrame(introLoop);
 }
@@ -92,10 +80,19 @@ window.triggerGravity = function() {
 function introLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    const safePara = document.getElementById('safe-paragraph');
+    let rect = null;
+    if (safePara) {
+        rect = safePara.getBoundingClientRect();
+        targetY = rect.top - player.h + 2;
+    }
+
     if (gameState === 'CLIMBING') {
-        player.y -= 2.0; 
+        player.y -= 1.0; 
         player.timer++;
         
+        if (rect) player.x = rect.left + 20;
+
         const currentImg = (Math.floor(player.timer / 15) % 2 === 0) ? climb1 : climb2;
         
         if (currentImg.complete && currentImg.naturalWidth !== 0) {
@@ -112,7 +109,12 @@ function introLoop() {
             }, 1500);
         }
     } 
-    else if (gameState === 'WAITING' || gameState === 'MODAL' || gameState === 'TYPING') {
+    else {
+        if (rect) {
+            player.x = rect.left + 20;
+            player.y = targetY;
+        }
+
         if (idle.complete && idle.naturalWidth !== 0) {
             ctx.drawImage(idle, player.x, player.y, player.w, player.h);
         } else if (climb1.complete && climb1.naturalWidth !== 0) {
@@ -121,10 +123,6 @@ function introLoop() {
     }
     
     if (gameState === 'FALLING' || gameState === 'TYPING') {
-        if (idle.complete && idle.naturalWidth !== 0) {
-            ctx.drawImage(idle, player.x, player.y, player.w, player.h);
-        } 
-        
         domFallingText.forEach(item => {
             item.vy += 0.5; 
             item.y += item.vy;
@@ -148,29 +146,32 @@ function startTypingInstructions() {
     
     let typingArea = document.createElement('div');
     typingArea.className = "absolute z-[3000] pointer-events-none flex flex-col items-start";
-    typingArea.style.top = "150px"; 
-    typingArea.style.left = "5vw";  // Responsive update
-    typingArea.style.right = "5vw"; // Responsive update
+    
+    const safePara = document.getElementById('safe-paragraph');
+    if (safePara) {
+        typingArea.style.top = (safePara.offsetTop + safePara.offsetHeight + 60) + "px";
+    } else {
+        typingArea.style.top = "400px";
+    }
+    
+    typingArea.style.left = "80px";  
+    typingArea.style.right = "80px"; 
     document.getElementById('word-page').appendChild(typingArea);
     
     let currentInst = 0;
     
     function typeNext() {
         if (currentInst >= instructions.length) {
-            const safePara = document.getElementById('safe-paragraph');
-            const rect = safePara.getBoundingClientRect();
-            
             const enterMsg = document.createElement('p');
-            enterMsg.className = "fixed text-slate-400 font-light text-sm animate-pulse z-[3000] pointer-events-none w-full text-center";
+            // FIXED: Changed mt-8 to mt-2 to pull the text significantly closer
+            enterMsg.className = "text-slate-400 font-light text-sm animate-pulse mt-2";
             enterMsg.innerText = "Press enter to start";
-            enterMsg.style.top = (rect.bottom + 50) + "px";
-            enterMsg.style.left = "0";
-            document.body.appendChild(enterMsg);
+            typingArea.appendChild(enterMsg);
             return; 
         }
         
         const p = document.createElement('p');
-        p.className = "text-xl font-bold text-red-600 mb-4 typing-cursor";
+        p.className = "text-xl font-bold text-red-600 mb-8 typing-cursor";
         typingArea.appendChild(p);
         
         const fullText = instructions[currentInst].text;
