@@ -9,7 +9,6 @@ function syncCanvas() {
     canvas.height = window.innerHeight; 
 }
 
-// FIXED: Listen for window resizes and recalculate all physics boundaries immediately!
 window.addEventListener('resize', () => {
     syncCanvas();
     if (typeof map !== 'undefined' && map.refreshPlatforms) {
@@ -422,9 +421,9 @@ class GameManager {
             this.activePortal = null; 
             player.carriedPrompt = null; 
             
-            // 1. SLIDE IN THE 35vw SIDEBAR
+            // 1. SLIDE IN THE SIDEBAR USING TRANSFORM
             const sidebar = document.getElementById('copilot-sidebar');
-            if (sidebar) sidebar.style.right = '0px';
+            if (sidebar) sidebar.style.transform = 'translateX(0%)';
 
             // 2. CREATE THE FLYING PROMPT CARD
             const block = document.createElement('div');
@@ -438,9 +437,9 @@ class GameManager {
             block.innerText = "Ctrl + V to drop";
             document.body.appendChild(block);
 
-            // Animate flying into the newly widened 35vw sidebar area
+            // Animate flying into the sidebar area
             setTimeout(() => {
-                block.style.left = 'calc(100vw - 20vw)'; // Targets the center of the 35vw sidebar
+                block.style.left = 'calc(100vw - 18vw)'; 
                 block.style.top = '150px'; 
                 block.style.opacity = '0'; 
                 block.style.transform = 'scale(0.4)'; 
@@ -454,10 +453,9 @@ class GameManager {
                 player.vy = -8; 
             }, 750); 
 
-            // 4. RESET AND RANDOM DROP FROM SKY
+            // 4. RESET AND DROP (Reduced by 30% from 4000ms down to 2800ms)
             setTimeout(() => {
-                // Hide the wider sidebar
-                if (sidebar) sidebar.style.right = '-35vw'; 
+                if (sidebar) sidebar.style.transform = 'translateX(100%)'; 
                 
                 targetPortal.img = targetPortal.originalImg; 
                 player.img = preloadedIdle; 
@@ -466,12 +464,12 @@ class GameManager {
                 
                 if (this.level < 4) {         
                     this.level++;          
-                    this.dropFromSky(); // Triggers the random fall!
+                    this.dropFromSky(); 
                     this.triggerLevelTransition();       
                 } else {         
                     alert("YOU WIN! Presentation delivered!");        
                 }
-            }, 4000); 
+            }, 2800); 
             
         } else {       
             this.cancelPortal(); 
