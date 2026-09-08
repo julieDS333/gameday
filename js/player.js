@@ -185,12 +185,12 @@ class Player {
       if (this.carriedPrompt.includes('outlook')) cardColor = '#7e22ce';        
       if (this.carriedPrompt.includes('excel')) cardColor = '#16a34a';        
       
-      // FIXED: Draw expanded card when frozen
+      // Expanded card when frozen (Borderless)
       if (this.frozen) {
         ctx.save();
         const cardW = 120;
         const cardH = 34;
-        const cardX = renderX + this.w / 2 - cardW / 2; // Perfectly centered above player
+        const cardX = renderX + this.w / 2 - cardW / 2;
         const cardY = renderY - 55;
 
         // Shadow for depth
@@ -198,16 +198,11 @@ class Player {
         ctx.shadowBlur = 8;
         ctx.shadowOffsetY = 4;
 
-        // Solid Color Background
+        // Solid Color Background (No border stroke)
         ctx.fillStyle = cardColor;
         ctx.fillRect(cardX, cardY, cardW, cardH);
         
-        ctx.shadowColor = 'transparent'; // Turn off shadow for text and border
-
-        // White Border
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cardX, cardY, cardW, cardH);
+        ctx.shadowColor = 'transparent';
 
         // Instruction Text
         ctx.font = 'bold 13px sans-serif';
@@ -215,11 +210,6 @@ class Player {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText("Ctrl + V to drop", cardX + cardW / 2, cardY + cardH / 2);
-
-        // Subtle arrow hint underneath
-        ctx.font = '10px sans-serif';
-        ctx.fillStyle = '#cbd5e1';
-        ctx.fillText("[Arrows] to leave", cardX + cardW / 2, cardY + cardH + 14);
 
         ctx.restore();
       } else {

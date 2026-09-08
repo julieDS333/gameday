@@ -1,3 +1,6 @@
+let smoothCameraY = 0; 
+let cameraAnchorY = 0; 
+
 const canvas = document.getElementById('gameCanvas'); 
 const ctx = canvas.getContext('2d'); 
 
@@ -16,7 +19,7 @@ const preloadedIdle = new Image(); preloadedIdle.src = 'assets/female_idle.png';
 
 const map = new Map(); 
 const randomSpawnX = Math.random() * (window.innerWidth - 36); 
-const player = new Player(randomSpawnX, 20); 
+const player = new Player(randomSpawnX, -100); 
 
 const GAME_LEVELS = [   
     { id: 1, task: 'Summarize the Word Doc', targetApp: 'word', targetPrompt: 'word-summary' },   
@@ -253,6 +256,15 @@ class GameManager {
         }, 5000);   
     }
 
+    dropFromSky() {
+        player.x = Math.random() * (window.innerWidth - player.w - 100) + 50;
+        player.y = -100;
+        player.vx = 0;
+        player.vy = 0;
+        player.grounded = false;
+        cameraAnchorY = 200;
+    }
+
     shuffleCards() {     
         const cards = document.querySelectorAll('.prompt-card');     
         cards.forEach(card => {         
@@ -284,10 +296,7 @@ class GameManager {
     resetToTask1() {       
         this.lives = 3;       
         this.level = 1;              
-        player.x = Math.random() * (window.innerWidth - player.w);       
-        player.y = 20;       
-        player.vx = 0;       
-        player.vy = 0;       
+        this.dropFromSky();
         player.carriedPrompt = null;              
         this.shuffleCards();       
         this.triggerLevelTransition();   
@@ -402,19 +411,41 @@ class GameManager {
             
             const targetPortal = this.activePortal;
             this.activePortal = null; 
-            player.frozen = false; 
+            player.carriedPrompt = null; 
             
-            player.img = preloadedCheer; 
-            player.vy = -8; 
-            player.carriedPrompt = null;
+            // Slide sidebar in
+            const sidebar = document.getElementById('copilot-sidebar');
+            if (sidebar) sidebar.style.right = '0px';
+
+            // Flying prompt block
+            const block = document.createElement('div');
+            block.className = 'fixed z-[9999] transition-all duration-700 ease-in-out font-bold text-white text-center flex items-center justify-center shadow-lg rounded';
+            block.style.width = '120px';
+            block.style.height = '34px';
+            block.style.backgroundColor = portalId === 'word' ? '#0067b1' : portalId === 'pwp' ? '#d97706' : '#7e22ce';
             
-            const winText = document.createElement('div');
-            winText.innerText = "Task Complete!";
-            winText.className = "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-5xl font-bold text-white drop-shadow-[0_5px_5px_rgba(0,103,177,1)] z-[9999] animate-bounce pointer-events-none";
-            document.body.appendChild(winText);
+            block.style.left = (player.x - window.scrollX + player.w / 2 - 60) + 'px';
+            block.style.top = (player.y - window.scrollY - 55) + 'px';
+            block.innerText = "Ctrl + V to drop";
+            document.body.appendChild(block);
 
             setTimeout(() => {
-                winText.remove();
+                block.style.left = 'calc(100vw - 12vw)'; 
+                block.style.top = '140px'; 
+                block.style.opacity = '0'; 
+                block.style.transform = 'scale(0.4)'; 
+            }, 50);
+
+            setTimeout(() => {
+                block.remove();
+                player.img = preloadedCheer;
+                player.frozen = false;
+                player.vy = -8; 
+            }, 750); 
+
+            setTimeout(() => {
+                if (sidebar) sidebar.style.right = '-25vw'; 
+                
                 targetPortal.img = targetPortal.originalImg; 
                 player.img = preloadedIdle; 
                 this.isCelebrating = false;
@@ -422,11 +453,12 @@ class GameManager {
                 
                 if (this.level < 4) {         
                     this.level++;          
+                    this.dropFromSky();
                     this.triggerLevelTransition();       
                 } else {         
                     alert("YOU WIN! Presentation delivered!");        
                 }
-            }, 2500);
+            }, 5000); 
             
         } else {       
             this.cancelPortal(); 
@@ -482,7 +514,8 @@ class GameManager {
         
         if (livesElement && taskElement) {       
             const objective = this.getCurrentObjective();       
-            livesElement.innerHTML = ' '.repeat(this.lives);        
+            // RESTORED: Heart emojis for lives
+            livesElement.innerHTML = '❤️'.repeat(this.lives);        
             taskElement.innerHTML = `Level ${this.level}/4: ${objective.task}   Drop in ${objective.targetApp.toUpperCase()}`;     
         }   
     }
@@ -587,7 +620,6 @@ function gameLoop() {
                 player.y + player.h > portal.hitY) {         
                 
                 gameManager.activePortal = portal;
-                portal.originalImg = portal.img;
                 portal.img = preloadedCopilot; 
                 
                 player.frozen = true;
@@ -599,14 +631,20 @@ function gameLoop() {
         });   
     }
 
-    // FIXED: Lock the camera to a stable coordinate when inside a bubble so the screen stops shaking!
-    let cameraTargetY = player.y;
+    if (player.grounded || player.onAbsoluteBottom) {
+        cameraAnchorY = player.y;
+    }
+
+    let cameraTargetY = cameraAnchorY;
     if (gameManager.activePortal && !gameManager.isCelebrating) {
-        cameraTargetY = gameManager.activePortal.y;
+        cameraTargetY = gameManager.activePortal.hitY;
     }
     
-    const targetScrollY = cameraTargetY - (window.innerHeight / 2);   
-    window.scrollTo(0, Math.max(0, targetScrollY));
+    let idealScrollY = Math.max(0, cameraTargetY - (window.innerHeight / 2));
+    if (smoothCameraY === 0) smoothCameraY = idealScrollY;
+    
+    smoothCameraY += (idealScrollY - smoothCameraY) * 0.1;
+    window.scrollTo(0, smoothCameraY);   
     
     gameManager.drawPortals(ctx);   
     gameManager.acBlock.update(ctx);    
@@ -637,5 +675,6 @@ window.addEventListener('load', () => {
     gameManager.loadLevelCards();   
     gameManager.updateHUD();   
     map.refreshPlatforms();   
+    gameManager.dropFromSky();
     gameLoop(); 
 });
