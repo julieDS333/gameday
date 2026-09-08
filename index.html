@@ -8,18 +8,21 @@
   <style>
     body { background-color: #1e1e1e; margin: 0; overflow: hidden; }
     
+    /* FIXED: Responsive Word Page */
     #word-page {
       position: relative;
       z-index: 10;
       background: white;
-      width: 800px;
+      width: 100%;
+      max-width: 800px;
       min-height: 100vh;
       margin: 0 auto;
       box-shadow: 0 0 30px rgba(0,0,0,0.6); 
       padding-top: 150px; 
-      padding-left: 80px;
-      padding-right: 80px;
+      padding-left: 5vw;
+      padding-right: 5vw;
       padding-bottom: 100px;
+      box-sizing: border-box;
     }
 
     .word-text {
@@ -89,7 +92,6 @@
       overflow: hidden;
     }
 
-    /* FIXED: The cursor animation now ONLY changes the border color, so the text won't flash! */
     .typing-cursor {
       border-right: 2px solid #dc2626;
       animation: cursorBlink 1s step-end infinite;
@@ -141,7 +143,6 @@
         We need to share our findings, can you summarize your notes, build a deck and send it asap?
       </p>
       <div class="mt-8 flex justify-end">
-        <!-- FIXED: Button text updated -->
         <button onclick="triggerGravity()" class="bg-[#0067b1] hover:bg-[#00518c] text-white px-6 py-2 rounded-md font-semibold transition">Do it with AI</button>
       </div>
     </div>

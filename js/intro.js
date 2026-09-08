@@ -5,7 +5,19 @@ function syncCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
-window.addEventListener('resize', syncCanvas);
+
+// FIXED: Listen for window resizes and snap the player to the new paragraph location!
+window.addEventListener('resize', () => {
+    syncCanvas();
+    const safePara = document.getElementById('safe-paragraph');
+    if (safePara && (gameState === 'WAITING' || gameState === 'MODAL' || gameState === 'TYPING')) {
+        const rect = safePara.getBoundingClientRect();
+        targetY = rect.top - player.h + 2;
+        player.x = rect.left + 20; 
+        player.y = targetY; // Snap immediately to new layout
+    }
+});
+
 syncCanvas();
 
 const climb1 = new Image(); climb1.src = 'assets/female_climb1.png';
@@ -123,7 +135,6 @@ function introLoop() {
     requestAnimationFrame(introLoop);
 }
 
-// Added the teleportation line back in at the start!
 const instructions = [
     { text: "You are going to be teleported to the Copilot Hub." },
     { text: "Check the level to know what task to achieve." },
@@ -138,8 +149,8 @@ function startTypingInstructions() {
     let typingArea = document.createElement('div');
     typingArea.className = "absolute z-[3000] pointer-events-none flex flex-col items-start";
     typingArea.style.top = "150px"; 
-    typingArea.style.left = "80px";
-    typingArea.style.right = "80px";
+    typingArea.style.left = "5vw";  // Responsive update
+    typingArea.style.right = "5vw"; // Responsive update
     document.getElementById('word-page').appendChild(typingArea);
     
     let currentInst = 0;

@@ -9,11 +9,14 @@ function syncCanvas() {
     canvas.height = window.innerHeight; 
 }
 
+// FIXED: Add 50ms delay on resize to allow Tailwind CSS grid to update first
 window.addEventListener('resize', () => {
     syncCanvas();
-    if (typeof map !== 'undefined' && map.refreshPlatforms) {
-        map.refreshPlatforms();
-    }
+    setTimeout(() => {
+        if (typeof map !== 'undefined' && map.refreshPlatforms) {
+            map.refreshPlatforms();
+        }
+    }, 50);
 }); 
 
 syncCanvas(); 
@@ -421,11 +424,9 @@ class GameManager {
             this.activePortal = null; 
             player.carriedPrompt = null; 
             
-            // 1. SLIDE IN THE SIDEBAR USING TRANSFORM
             const sidebar = document.getElementById('copilot-sidebar');
             if (sidebar) sidebar.style.transform = 'translateX(0%)';
 
-            // 2. CREATE THE FLYING PROMPT CARD
             const block = document.createElement('div');
             block.className = 'fixed z-[9999] transition-all duration-700 ease-in-out font-bold text-white text-center flex items-center justify-center shadow-lg rounded';
             block.style.width = '120px';
@@ -437,15 +438,13 @@ class GameManager {
             block.innerText = "Ctrl + V to drop";
             document.body.appendChild(block);
 
-            // Animate flying into the sidebar area
             setTimeout(() => {
-                block.style.left = 'calc(100vw - 18vw)'; 
+                block.style.left = 'calc(100vw - 18vw)'; // Aiming for center of 35% sidebar
                 block.style.top = '150px'; 
                 block.style.opacity = '0'; 
                 block.style.transform = 'scale(0.4)'; 
             }, 50);
 
-            // 3. PLAYER CHEERS
             setTimeout(() => {
                 block.remove();
                 player.img = preloadedCheer;
@@ -453,7 +452,7 @@ class GameManager {
                 player.vy = -8; 
             }, 750); 
 
-            // 4. RESET AND DROP (Reduced by 30% from 4000ms down to 2800ms)
+            // FIXED: Shorter Celebration Timeline (2.8 seconds)
             setTimeout(() => {
                 if (sidebar) sidebar.style.transform = 'translateX(100%)'; 
                 
