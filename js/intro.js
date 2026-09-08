@@ -26,12 +26,12 @@ let targetY = 0;
 let domFallingText = [];
 
 function init() {
-    const safePara = document.getElementById('safe-paragraph');
+    // FIXED: Now targets the main title instead of a paragraph
+    const safePara = document.getElementById('doc-title');
     if (!safePara) return;
 
     const rect = safePara.getBoundingClientRect();
     
-    // Start way below the screen to climb up
     targetY = rect.top - player.h + 2;
     player.x = rect.left + 20; 
     player.y = targetY + 600; 
@@ -65,7 +65,8 @@ window.triggerGravity = function() {
     const paragraphs = document.querySelectorAll('.word-text, #doc-title');
     
     paragraphs.forEach(el => {
-        if (el.id !== 'safe-paragraph') {
+        // FIXED: The only thing that survives gravity is the title!
+        if (el.id !== 'doc-title') {
             domFallingText.push({
                 element: el,
                 y: 0,
@@ -80,7 +81,7 @@ window.triggerGravity = function() {
 function introLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const safePara = document.getElementById('safe-paragraph');
+    const safePara = document.getElementById('doc-title');
     let rect = null;
     if (safePara) {
         rect = safePara.getBoundingClientRect();
@@ -88,7 +89,7 @@ function introLoop() {
     }
 
     if (gameState === 'CLIMBING') {
-        player.y -= 1.0; 
+        player.y -= 1.5; 
         player.timer++;
         
         if (rect) player.x = rect.left + 20;
@@ -147,7 +148,8 @@ function startTypingInstructions() {
     let typingArea = document.createElement('div');
     typingArea.className = "absolute z-[3000] pointer-events-none flex flex-col items-start";
     
-    const safePara = document.getElementById('safe-paragraph');
+    // Position exactly relative to the fixed title
+    const safePara = document.getElementById('doc-title');
     if (safePara) {
         typingArea.style.top = (safePara.offsetTop + safePara.offsetHeight + 60) + "px";
     } else {
@@ -163,7 +165,6 @@ function startTypingInstructions() {
     function typeNext() {
         if (currentInst >= instructions.length) {
             const enterMsg = document.createElement('p');
-            // FIXED: Changed mt-8 to mt-2 to pull the text significantly closer
             enterMsg.className = "text-slate-400 font-light text-sm animate-pulse mt-2";
             enterMsg.innerText = "Press enter to start";
             typingArea.appendChild(enterMsg);
@@ -200,4 +201,4 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-window.addEventListener('load', () => setTimeout(init, 200));
+window.addEventListener('load', () => setTimeout(init, 1000));
