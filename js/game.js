@@ -18,8 +18,8 @@ const preloadedCheer = new Image(); preloadedCheer.src = 'assets/female_cheer2.p
 const preloadedIdle = new Image(); preloadedIdle.src = 'assets/female_idle.png';
 
 const map = new Map(); 
-const randomSpawnX = Math.random() * (window.innerWidth - 36); 
-const player = new Player(randomSpawnX, -100); 
+const randomSpawnX = Math.random() * (window.innerWidth - 100) + 50; 
+const player = new Player(randomSpawnX, -150); 
 
 const GAME_LEVELS = [   
     { id: 1, task: 'Summarize the Word Doc', targetApp: 'word', targetPrompt: 'word-summary' },   
@@ -257,12 +257,13 @@ class GameManager {
     }
 
     dropFromSky() {
-        player.x = Math.random() * (window.innerWidth - player.w - 100) + 50;
-        player.y = -100;
-        player.vx = 0;
+        const docWidth = window.innerWidth;
+        player.x = Math.random() * (docWidth - player.w - 100) + 50; 
+        player.y = -150; 
+        player.vx = 0; 
         player.vy = 0;
         player.grounded = false;
-        cameraAnchorY = 200;
+        cameraAnchorY = 200; 
     }
 
     shuffleCards() {     
@@ -413,11 +414,11 @@ class GameManager {
             this.activePortal = null; 
             player.carriedPrompt = null; 
             
-            // Slide sidebar in
+            // 1. SLIDE IN THE 35vw SIDEBAR
             const sidebar = document.getElementById('copilot-sidebar');
             if (sidebar) sidebar.style.right = '0px';
 
-            // Flying prompt block
+            // 2. CREATE THE FLYING PROMPT CARD
             const block = document.createElement('div');
             block.className = 'fixed z-[9999] transition-all duration-700 ease-in-out font-bold text-white text-center flex items-center justify-center shadow-lg rounded';
             block.style.width = '120px';
@@ -429,13 +430,15 @@ class GameManager {
             block.innerText = "Ctrl + V to drop";
             document.body.appendChild(block);
 
+            // Animate flying into the newly widened 35vw sidebar area
             setTimeout(() => {
-                block.style.left = 'calc(100vw - 12vw)'; 
-                block.style.top = '140px'; 
+                block.style.left = 'calc(100vw - 20vw)'; // Targets the center of the 35vw sidebar
+                block.style.top = '150px'; 
                 block.style.opacity = '0'; 
                 block.style.transform = 'scale(0.4)'; 
             }, 50);
 
+            // 3. PLAYER CHEERS
             setTimeout(() => {
                 block.remove();
                 player.img = preloadedCheer;
@@ -443,8 +446,10 @@ class GameManager {
                 player.vy = -8; 
             }, 750); 
 
+            // 4. RESET AND RANDOM DROP FROM SKY
             setTimeout(() => {
-                if (sidebar) sidebar.style.right = '-25vw'; 
+                // Hide the wider sidebar
+                if (sidebar) sidebar.style.right = '-35vw'; 
                 
                 targetPortal.img = targetPortal.originalImg; 
                 player.img = preloadedIdle; 
@@ -453,12 +458,12 @@ class GameManager {
                 
                 if (this.level < 4) {         
                     this.level++;          
-                    this.dropFromSky();
+                    this.dropFromSky(); // Triggers the random fall!
                     this.triggerLevelTransition();       
                 } else {         
                     alert("YOU WIN! Presentation delivered!");        
                 }
-            }, 5000); 
+            }, 4000); 
             
         } else {       
             this.cancelPortal(); 
@@ -514,7 +519,6 @@ class GameManager {
         
         if (livesElement && taskElement) {       
             const objective = this.getCurrentObjective();       
-            // RESTORED: Heart emojis for lives
             livesElement.innerHTML = '❤️'.repeat(this.lives);        
             taskElement.innerHTML = `Level ${this.level}/4: ${objective.task}   Drop in ${objective.targetApp.toUpperCase()}`;     
         }   
@@ -620,6 +624,7 @@ function gameLoop() {
                 player.y + player.h > portal.hitY) {         
                 
                 gameManager.activePortal = portal;
+                portal.originalImg = portal.img;
                 portal.img = preloadedCopilot; 
                 
                 player.frozen = true;
@@ -675,6 +680,6 @@ window.addEventListener('load', () => {
     gameManager.loadLevelCards();   
     gameManager.updateHUD();   
     map.refreshPlatforms();   
-    gameManager.dropFromSky();
+    gameManager.dropFromSky(); 
     gameLoop(); 
 });
