@@ -8,7 +8,15 @@ function syncCanvas() {
     canvas.width = window.innerWidth;   
     canvas.height = window.innerHeight; 
 }
-window.addEventListener('resize', syncCanvas); 
+
+// FIXED: Listen for window resizes and recalculate all physics boundaries immediately!
+window.addEventListener('resize', () => {
+    syncCanvas();
+    if (typeof map !== 'undefined' && map.refreshPlatforms) {
+        map.refreshPlatforms();
+    }
+}); 
+
 syncCanvas(); 
 
 const preloadedEmail = new Image(); preloadedEmail.src = 'assets/email.png'; 
