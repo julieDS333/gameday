@@ -9,7 +9,6 @@ function syncCanvas() {
     canvas.height = window.innerHeight; 
 }
 
-// FIXED: Add 50ms delay on resize to allow Tailwind CSS grid to update first
 window.addEventListener('resize', () => {
     syncCanvas();
     setTimeout(() => {
@@ -256,13 +255,23 @@ class GameManager {
             { id: 'outlook', img: this.apps.outlook, originalImg: this.apps.outlook, x: 500, y: 800 }     
         ];     
         
+        this.isLevelJumping = false;
+
         setInterval(() => {       
             if (this.level >= 3 && !this.isCelebrating) {         
                 document.querySelectorAll('.filter-btn').forEach(btn => {           
                     btn.classList.add('animate-jump');           
                     setTimeout(() => btn.classList.remove('animate-jump'), 1000);         
                 });       
-            }     
+            }
+            
+            // FIXED: Only jump if it is Level 1!
+            if (!this.isCelebrating && this.level === 1) {
+                this.isLevelJumping = true;
+                setTimeout(() => {
+                    this.isLevelJumping = false;
+                }, 1000);
+            }
         }, 5000);   
     }
 
@@ -439,7 +448,7 @@ class GameManager {
             document.body.appendChild(block);
 
             setTimeout(() => {
-                block.style.left = 'calc(100vw - 18vw)'; // Aiming for center of 35% sidebar
+                block.style.left = 'calc(100vw - 12.5vw)'; 
                 block.style.top = '150px'; 
                 block.style.opacity = '0'; 
                 block.style.transform = 'scale(0.4)'; 
@@ -452,7 +461,6 @@ class GameManager {
                 player.vy = -8; 
             }, 750); 
 
-            // FIXED: Shorter Celebration Timeline (2.8 seconds)
             setTimeout(() => {
                 if (sidebar) sidebar.style.transform = 'translateX(100%)'; 
                 
@@ -468,7 +476,7 @@ class GameManager {
                 } else {         
                     alert("YOU WIN! Presentation delivered!");        
                 }
-            }, 2800); 
+            }, 3500); 
             
         } else {       
             this.cancelPortal(); 
@@ -524,8 +532,19 @@ class GameManager {
         
         if (livesElement && taskElement) {       
             const objective = this.getCurrentObjective();       
-            livesElement.innerHTML = '❤️'.repeat(this.lives);        
-            taskElement.innerHTML = `Level ${this.level}/4: ${objective.task}   Drop in ${objective.targetApp.toUpperCase()}`;     
+            
+            const expectedLives = '❤️'.repeat(this.lives);
+            if (livesElement.innerHTML !== expectedLives) {
+                livesElement.innerHTML = expectedLives;
+            }
+
+            const jumpClass = this.isLevelJumping ? 'animate-jump' : '';
+            
+            const expectedTask = `<span class="inline-block transition-transform duration-300 mr-3 text-white bg-white/20 px-4 py-1 rounded-lg shadow-sm ${jumpClass}" style="font-size: 1.3em; font-weight: 800;">LEVEL ${this.level}</span> ${objective.task} - Drop in ${objective.targetApp.toUpperCase()}`;     
+            
+            if (taskElement.innerHTML !== expectedTask) {
+                taskElement.innerHTML = expectedTask;
+            }
         }   
     }
 }
@@ -619,6 +638,7 @@ function gameLoop() {
     }
 
     player.update(keys, map.platforms);   
+    
     gameManager.updateHUD();    
     
     if (player.carriedPrompt && !gameManager.activePortal && player.portalCooldown === 0) {     

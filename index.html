@@ -104,12 +104,27 @@
   <img src="assets/word_header.png" style="position: fixed; top: 0; left: 0; width: 100%; min-width: 1200px; z-index: 40; border: none; outline: none;" alt="Word Header">
 
   <div id="word-page">
+    
+    <div id="tutorial-keys" class="absolute top-[160px] right-[100px] hidden w-[80px] h-[80px] z-[3000] text-3xl text-slate-800 font-bold select-none cursor-default">
+        <div id="key-up" class="absolute left-[27px] top-0 transition-transform duration-100 ease-in-out flex items-center justify-center w-6 h-6">
+            <span class="inline-block -rotate-90">▷</span>
+        </div>
+        <div id="key-left" class="absolute left-0 top-[27px] transition-transform duration-100 ease-in-out flex items-center justify-center w-6 h-6">
+            <span class="inline-block rotate-180">▷</span>
+        </div>
+        <div id="key-right" class="absolute left-[54px] top-[27px] transition-transform duration-100 ease-in-out flex items-center justify-center w-6 h-6">
+            <span class="inline-block">▷</span>
+        </div>
+        <div id="key-down" class="absolute left-[27px] top-[54px] transition-transform duration-100 ease-in-out flex items-center justify-center w-6 h-6">
+            <span class="inline-block rotate-90">▷</span>
+        </div>
+    </div>
+
     <h1 id="doc-title" class="fallable text-3xl font-bold mb-6" style="font-family: 'Aptos', sans-serif;">Very important notes</h1>
     
     <div id="text-container">
       <p class="fallable word-text">The fundamental principle of air conditioning relies on the vapor-compression refrigeration cycle, which manipulates the boiling point of a refrigerant through targeted pressure changes. Thermal energy is systematically absorbed from the indoor space and rejected to the outdoor environment. This closed-loop system consists of four primary thermodynamic stages: compression, condensation, adiabatic expansion, and evaporation.</p>
       
-      <!-- FIXED: Removed the safe-paragraph ID and bolding. This will now fall! -->
       <p class="fallable word-text" style="margin-top: 30px;">During the initial compression phase, low-pressure, low-temperature refrigerant vapor enters the hermetic or semi-hermetic compressor. The compressor applies mechanical work driven by the motor armature, significantly increasing both the pressure and temperature of the gas. This superheated vapor is then discharged into the condenser coil at a high velocity.</p>
       
       <p class="fallable word-text" style="margin-top: 30px;">Upon entering the condenser array, the high-pressure superheated vapor exchanges heat with the ambient outdoor air, usually assisted by variable-speed axial fans. As sensible and latent thermal energy is dissipated into the environment, the refrigerant undergoes an isobaric phase change, gradually condensing into a high-pressure subcooled liquid.</p>
@@ -147,8 +162,9 @@
     </div>
   </div>
 
-  <div class="fixed bottom-4 right-4 z-[3000] cursor-pointer bg-slate-900/40 hover:bg-slate-900/80 px-3 py-1.5 rounded transition" onclick="window.location.href='game.html'">
-    <p class="text-xs text-white font-medium">Press ENTER or Click to skip</p>
+  <!-- FIXED: Replaced standard slate background with the exact #1e1e1e grey color used on the app background! -->
+  <div id="skip-btn" class="fixed bottom-4 right-4 z-[3000] cursor-pointer bg-[#1e1e1e]/80 hover:bg-[#1e1e1e] px-4 py-2 rounded transition-all duration-300 origin-bottom-right border border-transparent" onclick="window.location.href='game.html'">
+    <p id="skip-text" class="text-sm text-white font-medium">Press ENTER or Click to skip</p>
   </div>
 
   <script src="js/intro.js"></script>
