@@ -105,6 +105,7 @@
 
   <div id="word-page">
     
+    <!-- FIXED: Right arrow is solid ▶︎, all others are empty ▷ -->
     <div id="tutorial-keys" class="absolute top-[160px] right-[100px] hidden w-[80px] h-[80px] z-[3000] text-3xl text-slate-800 font-bold select-none cursor-default">
         <div id="key-up" class="absolute left-[27px] top-0 transition-transform duration-100 ease-in-out flex items-center justify-center w-6 h-6">
             <span class="inline-block -rotate-90">▷</span>
@@ -113,7 +114,7 @@
             <span class="inline-block rotate-180">▷</span>
         </div>
         <div id="key-right" class="absolute left-[54px] top-[27px] transition-transform duration-100 ease-in-out flex items-center justify-center w-6 h-6">
-            <span class="inline-block">▷</span>
+            <span class="inline-block">▶︎</span>
         </div>
         <div id="key-down" class="absolute left-[27px] top-[54px] transition-transform duration-100 ease-in-out flex items-center justify-center w-6 h-6">
             <span class="inline-block rotate-90">▷</span>
@@ -162,7 +163,6 @@
     </div>
   </div>
 
-  <!-- FIXED: Replaced standard slate background with the exact #1e1e1e grey color used on the app background! -->
   <div id="skip-btn" class="fixed bottom-4 right-4 z-[3000] cursor-pointer bg-[#1e1e1e]/80 hover:bg-[#1e1e1e] px-4 py-2 rounded transition-all duration-300 origin-bottom-right border border-transparent" onclick="window.location.href='game.html'">
     <p id="skip-text" class="text-sm text-white font-medium">Press ENTER or Click to skip</p>
   </div>

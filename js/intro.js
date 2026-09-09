@@ -12,7 +12,6 @@ const climb1 = new Image(); climb1.src = 'assets/female_climb1.png';
 const climb2 = new Image(); climb2.src = 'assets/female_climb2.png';
 const idle = new Image(); idle.src = 'assets/female_idle.png'; 
 
-// NEW TUTORIAL ASSETS: Word Logo and Copilot Logo
 const wordImg = new Image(); wordImg.src = 'assets/word1.png';
 const copilotImg = new Image(); copilotImg.src = 'assets/copilot.png';
 
@@ -28,11 +27,10 @@ const player = {
     vx: 0,
     vy: 0,
     grounded: false,
-    frozen: false, // Added to freeze player when stuck in portal
+    frozen: false, 
     timer: 0
 };
 
-// Portal State
 const tutorialPortal = {
     active: false,
     arrived: false,
@@ -64,22 +62,22 @@ window.addEventListener('keydown', (e) => {
         if (el) el.style.transform = 'scale(0.8)';
     }
     
-    // NEW: Listen for Ctrl + V when stuck in the portal
     if (tutorialPortal.stuck && !tutorialComplete) {
         if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyV' || e.key === 'v')) {
             e.preventDefault();
             
-            // Transform portal to Copilot!
             tutorialPortal.img = copilotImg;
             tutorialComplete = true;
-            player.frozen = false;
-            player.vy = -8; // Joy jump
             
-            // Remove the floating DOM prompt
+            // FIXED: Unfreeze and eject the player backwards to the left!
+            player.frozen = false;
+            player.x = tutorialPortal.x - player.w - 20; // Teleport slightly left
+            player.vy = -6; // Pop upward
+            player.vx = -4; // Knockback momentum to the left
+            
             const promptEl = document.getElementById('tutorial-paste-prompt');
             if (promptEl) promptEl.remove();
 
-            // Scale up the Skip Button
             const skipBtn = document.getElementById('skip-btn');
             if (skipBtn) {
                 skipBtn.classList.remove('bg-[#1e1e1e]/80');
@@ -192,33 +190,26 @@ function introLoop() {
     }
     else if (gameState === 'TUTORIAL') {
         
-        // --- PLAYER PHYSICS ---
         if (!player.frozen) {
-            // Horizontal Movement
             if (keys.ArrowLeft) player.vx -= 0.6;
             if (keys.ArrowRight) player.vx += 0.6;
             player.vx *= 0.82; 
             player.x += player.vx;
 
-            // Vertical Movement & Gravity
             player.vy += 0.5; 
             player.y += player.vy;
             player.grounded = false;
 
-            // Jump
             if (keys.ArrowUp && player.grounded) {
                 player.vy = -9;
                 player.grounded = false;
             }
         } else {
-            // Lock player onto the portal visually
             player.x = tutorialPortal.x + tutorialPortal.radius - player.w / 2;
             player.y = tutorialPortal.y + tutorialPortal.floatY - player.h + 20;
         }
 
-        // --- ENVIRONMENT COLLISIONS ---
         let platforms = [];
-        if (rect) platforms.push(rect); 
         
         if (typingAreaElement) {
             Array.from(typingAreaElement.children).forEach(el => {
@@ -245,19 +236,18 @@ function introLoop() {
 
         if (player.x < 0) player.x = 0;
 
-        // --- PORTAL LOGIC ---
-        if (rect) {
-            const portalTargetX = rect.left + 340; 
-            const portalTargetY = rect.top - 120;
+        if (typingAreaElement && typingAreaElement.children.length > 0) {
+            const firstLine = typingAreaElement.children[0].getBoundingClientRect();
+            
+            const portalTargetX = firstLine.left + 340; 
+            const portalTargetY = firstLine.top - 60; 
 
-            // Spawn portal
             if (!tutorialPortal.active) {
                 tutorialPortal.x = portalTargetX;
                 tutorialPortal.y = -100;
                 tutorialPortal.active = true;
             }
 
-            // Fall animation
             if (tutorialPortal.y < portalTargetY) {
                 tutorialPortal.y += 3;
             } else {
@@ -265,7 +255,6 @@ function introLoop() {
                 tutorialPortal.arrived = true;
             }
 
-            // Draw Portal
             tutorialPortal.floatY = Math.sin(Date.now() / 500) * 10;        
             const renderX = tutorialPortal.x;       
             const renderY = tutorialPortal.y + tutorialPortal.floatY;       
@@ -297,7 +286,6 @@ function introLoop() {
                 ctx.drawImage(tutorialPortal.img, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);       
             }              
             
-            // Check Collision with Player to Trigger "Stuck" State
             if (tutorialPortal.arrived && !tutorialPortal.stuck && !tutorialComplete) {
                 if (player.x < renderX + tutorialPortal.radius * 2 &&         
                     player.x + player.w > renderX &&         
@@ -309,7 +297,6 @@ function introLoop() {
                     player.vx = 0;
                     player.vy = 0;
 
-                    // Generate the floating prompt
                     const block = document.createElement('div');
                     block.id = 'tutorial-paste-prompt';
                     block.className = 'fixed z-[9999] font-bold text-white text-center flex items-center justify-center shadow-lg rounded bg-[#0067b1]';
@@ -323,13 +310,11 @@ function introLoop() {
             }
         }
 
-        // Draw Player
         if (idle.complete && idle.naturalWidth !== 0) {
             ctx.drawImage(idle, player.x, player.y, player.w, player.h);
         }
     }
     
-    // Background falling text animation
     if (gameState === 'FALLING' || gameState === 'TYPING' || gameState === 'TUTORIAL') {
         domFallingText.forEach(item => {
             item.vy += 0.5; 
